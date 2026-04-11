@@ -65,7 +65,7 @@ input:focus,textarea:focus{border-color:var(--link)}
 
 <hr class="sep">
 
-<button class="bb" style="background:var(--go);color:#000" id="expBtn" onclick="doExport()">Export for Excel</button>
+<button class="bb" style="background:var(--go);color:#000" id="expBtn" onclick="doExport()">Export Timesheet</button>
 <button class="lk d" id="clrBtn" onclick="clrWeek()" aria-label="Clear all entries this week" style="margin-bottom:1rem">Clear all entries</button>
 
 <hr class="sep">
@@ -99,13 +99,13 @@ input:focus,textarea:focus{border-color:var(--link)}
 <p>The summary shows your total hours, how many are claimed (capped at your max — set this in Settings), and any time owing. "Time Owed" entries are subtracted before calculating.</p>
 <h3>Custom tasks</h3>
 <p>On the task step, pick a built-in type or type your own. Custom tasks are remembered and appear as buttons next time. To remove one you no longer need, tap the ✕ next to it on the task step — this only removes it from the list, any existing entries using it stay put.</p>
-<h3>Exporting</h3>
-<p>At the end of the week, tap "Export for Excel." The iOS share sheet opens — the quickest path is usually:</p>
-<p>Tap <strong>Mail</strong> to send it to yourself or someone else. A new email opens with the timesheet already attached as a CSV file.</p>
-<p>Or tap <strong>Save to Files</strong>, pick On My iPhone or iCloud Drive, then open the Files app, tap the file, tap Share, and choose Copy to Excel or Copy to Numbers.</p>
-<p>If Excel or Numbers appear directly in the share sheet (scroll down past the apps row to check), you can tap them from there too — but this depends on your iOS version, and Save to Files always works.</p>
+<h3>Exporting your timesheet</h3>
+<p>At the end of the week, tap "Export Timesheet." The iOS share sheet opens.</p>
+<p>Tap <strong>Save to Files</strong>, pick a location like On My iPhone or iCloud Drive, and tap Save.</p>
+<p>Then open the <strong>Files</strong> app, find the file where you saved it, and tap it. Tap the Share button (the square with the arrow pointing up), and choose Copy to Excel or Copy to Numbers. The file opens straight into the app and you can email, edit or send it from there.</p>
+<p>If you just want to email it to someone, you can also tap <strong>Mail</strong> directly from the first share sheet — a new email opens with the file already attached.</p>
 <h3>On a computer</h3>
-<p>On a desktop browser the export downloads as a CSV file instead of opening the share sheet. Open it in Excel or Numbers from your Downloads folder.</p>
+<p>On a desktop browser the export downloads a file to your Downloads folder. Open it in Excel or Numbers from there.</p>
 <h3>Settings</h3>
 <p>In Settings you can change your maximum weekly hours. The default is 7.</p>
 <button class="bb" style="background:var(--surface);color:var(--link)" onclick="go('list')">← Back to Timesheet</button>
@@ -251,7 +251,7 @@ function doExport(){
   if(!ents.length){flash('Nothing to export');return}
   const csv=buildCsv();
   const name=`timesheet_${wk()}.csv`;
-  const done=m=>{sEx();flash(m);say('Timesheet exported. Open in Excel or Numbers to share.')};
+  const done=m=>{sEx();flash(m);say('Timesheet exported. Save to Files, then open from Files to share.')};
   const fallback=()=>{
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
     const url=URL.createObjectURL(blob);
@@ -261,7 +261,7 @@ function doExport(){
     done('CSV downloaded');
   };
   try{
-    const file=new File([csv],name,{type:'application/octet-stream'});
+    const file=new File([csv],name,{type:'text/csv'});
     if(navigator.canShare&&navigator.canShare({files:[file]})){
       navigator.share({files:[file]}).then(()=>done('Shared')).catch(err=>{
         if(err&&err.name==='AbortError')return;
