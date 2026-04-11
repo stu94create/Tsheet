@@ -276,7 +276,7 @@ function buildXlsx(){
   const owing=w>mx?w-mx:0;
   const xe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
   const sC=(r,s,v)=>`<c r="${r}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`;
-  const nC=(r,s,v)=>`<c r="${r}" s="${s}"><v>${v}</v></c>`;
+  const nC=(r,s,v)=>`<c r="${r}" s="${s}" t="n"><v>${v}</v></c>`;
   const col=i=>String.fromCharCode(65+i);
   const hdrs=['Day','Participant Code','Task','Task Details','Admin Details','Time'];
   let body='';
