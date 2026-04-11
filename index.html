@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#111111">
+<title>Timesheet</title>
+<style>
+:root{--bg:#111;--surface:#1a1a2e;--border:#2a2a4a;--abg:#1a3a5c;--ab:#53a8b6;--text:#f0f0f0;--muted:#aaa;--accent:#e94560;--go:#4ecca3;--link:#53a8b6}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;-webkit-text-size-adjust:100%}
+*:focus-visible{outline:3px solid var(--link);outline-offset:2px}
+header{background:var(--surface);padding:1rem 1.25rem;border-bottom:2px solid #333}
+header h1{font-size:1.3rem;font-weight:700}
+.w{max-width:600px;margin:0 auto;padding:0 1rem 3rem}
+h2{font-size:1.2rem;font-weight:700;margin:1.25rem 0 .75rem}
+h3{font-size:1rem;font-weight:600;margin:1rem 0 .5rem;color:var(--muted)}
+p{font-size:.95rem;line-height:1.7;color:#ccc;margin:0 0 .75rem}
+.bb{display:block;width:100%;padding:1rem;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer;min-height:54px;font-family:inherit;margin-bottom:.5rem;text-align:left}
+.lb{display:block;width:100%;padding:.9rem 1rem;background:var(--surface);border:2px solid var(--border);border-radius:10px;font-size:1rem;font-family:inherit;color:#ddd;font-weight:500;cursor:pointer;min-height:50px;margin-bottom:.4rem;text-align:left}
+.lb[aria-pressed="true"]{background:var(--abg);border-color:var(--ab);color:var(--ab);font-weight:700}
+input,textarea{display:block;width:100%;padding:.85rem;background:var(--surface);color:var(--text);border:2px solid var(--border);border-radius:10px;font-size:1rem;font-family:inherit;margin-bottom:.75rem}
+textarea{resize:vertical;min-height:80px}
+input:focus,textarea:focus{border-color:var(--link)}
+.lk{background:none;border:none;color:var(--link);font-size:.95rem;cursor:pointer;padding:.3rem 0;font-family:inherit;text-decoration:underline}
+.lk.d{color:var(--accent)}
+.ec{background:var(--surface);border-radius:10px;padding:1rem;margin-bottom:.6rem}
+.ec p{margin:0 0 .15rem;color:var(--text)}
+.ec .m{font-size:.9rem;color:var(--muted);margin-bottom:.5rem}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--go);color:#000;padding:.75rem 1.25rem;border-radius:10px;font-weight:600;font-size:.95rem;z-index:100;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.sep{border:none;border-top:1px solid #2a2a4a;margin:1.25rem 0}
+</style>
+</head>
+<body>
+<header><h1>Timesheet</h1></header>
+<div class="w">
+<div id="live" role="status" aria-live="polite" class="sr"></div>
+
+<!-- LIST -->
+
+<section id="vList">
+
+<h2>Week</h2>
+<div style="display:flex;gap:.5rem;margin-bottom:.75rem">
+<button class="bb" style="background:var(--surface);color:var(--text)" onclick="prevWeek()" aria-label="Previous week">◀ Back</button>
+<button class="bb" style="background:var(--surface);color:var(--text)" onclick="nextWeek()" aria-label="Next week">Next ▶</button>
+</div>
+<p id="wkLbl" style="font-size:1.05rem;font-weight:600;color:var(--text)" aria-live="polite"></p>
+
+<button class="bb" style="background:var(--accent);color:#fff" onclick="startAdd()">+ Add Entry</button>
+
+<h2>Entries</h2>
+<div id="eList"></div>
+
+<h2>Summary</h2>
+<p id="summ"></p>
+
+<hr class="sep">
+
+<button class="bb" style="background:var(--go);color:#000" id="expBtn" onclick="doExport()">Export for Excel</button>
+<button class="lk d" id="clrBtn" onclick="clrWeek()" aria-label="Clear all entries this week" style="margin-bottom:1rem">Clear all entries</button>
+
+<hr class="sep">
+
+<button class="bb" style="background:var(--surface);color:#ddd" onclick="go('settings')">Settings</button>
+<button class="bb" style="background:var(--surface);color:#ddd" onclick="go('help')">How to Use This</button>
+
+</section>
+
+<!-- SETTINGS -->
+
+<section id="vSettings" hidden>
+<h2>Settings</h2>
+<h3>Maximum hours per week</h3>
+<p style="margin-top:0">This caps your claimed hours. Anything above shows as time owing.</p>
+<div id="mxBtns"></div>
+<label for="mxC"><h3>Or type a custom max</h3></label>
+<input id="mxC" type="number" min="1" max="40" step="0.5" aria-label="Custom maximum hours">
+<button class="bb" style="background:var(--surface);color:var(--link)" onclick="go('list')">← Back to Timesheet</button>
+</section>
+
+<!-- HELP -->
+
+<section id="vHelp" hidden>
+<h2>How to Use This</h2>
+<h3>Adding entries during the week</h3>
+<p>Tap "Add Entry" on the main screen. You'll go through 3 steps: pick a day, pick or type a task type, then fill in the details and hours. Tap "Save Entry" when you're done. You can add as many entries as you need throughout the week.</p>
+<h3>Editing or deleting</h3>
+<p>Each entry has Edit and Delete links underneath it. Edit takes you back to the details step so you can change anything. Delete removes it straight away.</p>
+<h3>The summary</h3>
+<p>The summary shows your total hours, how many are claimed (capped at your max — set this in Settings), and any time owing. "Time Owed" entries are subtracted before calculating.</p>
+<h3>Custom tasks</h3>
+<p>On the task step, pick a built-in type or type your own. Custom tasks are remembered and appear as buttons next time.</p>
+<h3>Exporting for Excel</h3>
+<p>At the end of the week, tap "Export for Excel." This downloads a CSV file that opens in Excel and Numbers.</p>
+<h3>Opening the CSV in Excel on iPhone</h3>
+<p>After it downloads, open the Files app and find it in Downloads. Tap the file to preview it. Tap the Share button (the square with the arrow), then choose "Copy to Excel" or "Open in Excel."</p>
+<h3>Emailing from Excel on iPhone</h3>
+<p>With the file open in Excel, tap the three-dot menu at the top right, then "Send a Copy." Choose "Email" and pick Excel workbook as the format. This opens a new email with the timesheet attached. Add the address, a subject, and tap Send.</p>
+<h3>Emailing from Numbers on iPhone</h3>
+<p>In Numbers, tap the three-dot menu, then "Export," then "Excel." Tap Share, then Mail. This sends it as an Excel file.</p>
+<h3>Settings</h3>
+<p>In Settings you can change your maximum weekly hours. The default is 7.</p>
+<button class="bb" style="background:var(--surface);color:var(--link)" onclick="go('list')">← Back to Timesheet</button>
+</section>
+
+<!-- STEP 1: DAY -->
+
+<section id="vDay" hidden>
+<h2>Step 1 of 3 — Pick a Day</h2>
+<div id="dayB"></div>
+<button class="lk" onclick="go('list')" style="margin-top:.5rem">Cancel</button>
+</section>
+
+<!-- STEP 2: TASK -->
+
+<section id="vTask" hidden>
+<h2 id="tH">Step 2 of 3 — Pick Task</h2>
+<div id="taskB"></div>
+<label for="ctI"><h3>Or type a custom task</h3></label>
+<input id="ctI" type="text" placeholder="e.g. Mentoring, Meeting" aria-label="Custom task name">
+<button class="bb" style="background:var(--accent);color:#fff" onclick="confirmTask()">Next</button>
+<button class="lk" onclick="go('day')">Back to days</button>
+</section>
+
+<!-- STEP 3: DETAILS -->
+
+<section id="vDet" hidden>
+<h2 id="dH">Step 3 of 3</h2>
+<label for="fP"><h3>Participant Code (optional)</h3></label>
+<input id="fP" type="text" placeholder="e.g. PW, MK, 1633">
+<label for="fD"><h3>Task Details</h3></label>
+<textarea id="fD" placeholder="What did you work on?" rows="3"></textarea>
+<label for="fA"><h3>Admin Details (optional)</h3></label>
+<input id="fA" type="text" placeholder="Extra notes">
+<h3 id="hL">Hours</h3>
+<div role="group" aria-labelledby="hL" id="hrB"></div>
+<label for="fH"><h3>Or type hours</h3></label>
+<input id="fH" type="number" min="0.25" max="8" step="0.25" placeholder="Custom hours">
+<button class="bb" style="background:var(--go);color:#000" id="svBtn" onclick="submitEntry()">Save Entry</button>
+<button class="lk" onclick="go('task')">Back to tasks</button>
+</section>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// Audio
+const AC=window.AudioContext||window.webkitAudioContext;let ax;
+function ea(){if(!ax)ax=new AC();if(ax.state==='suspended')ax.resume()}
+function tone(f,d,t,v){ea();const o=ax.createOscillator(),g=ax.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.value=v||.12;g.gain.exponentialRampToValueAtTime(.001,ax.currentTime+d);o.connect(g);g.connect(ax.destination);o.start();o.stop(ax.currentTime+d)}
+function sT(){tone(660,.08,'sine',.08)}
+function sS(){tone(520,.12,'triangle',.1)}
+function sSv(){ea();[440,554,659].forEach((f,i)=>setTimeout(()=>tone(f,.2,'sine',.1),i*80))}
+function sDl(){tone(260,.2,'triangle',.1)}
+function sEx(){ea();[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.25,'sine',.09),i*100))}
+function sW(){tone(400,.15,'sine',.06);tone(500,.15,'sine',.06)}
+
+// State
+const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const DT=['Admin','Research','Training','Time Owed'];
+let ws=gM(new Date()),ents=[],sD='',sK='',eI=null,ct=[],mx=7;
+
+function gM(d){const x=new Date(d);const y=x.getDay();x.setDate(x.getDate()-y+(y===0?-6:1));x.setHours(0,0,0,0);return x}
+function wk(){return ws.toISOString().slice(0,10)}
+function fR(d){const e=new Date(d);e.setDate(e.getDate()+4);return`Week of ${d.toLocaleDateString('en-IE',{day:'numeric',month:'short'})} — ${e.toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})}`}
+function fS(d){const day=d.getDate(),m=d.toLocaleDateString('en-IE',{month:'long'}),y=d.getFullYear(),s=[1,21,31].includes(day)?'st':[2,22].includes(day)?'nd':[3,23].includes(day)?'rd':'th';return`${day}${s} ${m} ${y}`}
+
+function ld(k){try{const r=localStorage.getItem('ts_'+k);return r?JSON.parse(r):null}catch{return null}}
+function sv(k,v){try{localStorage.setItem('ts_'+k,JSON.stringify(v))}catch{}}
+function ls(){ents=ld(wk())||[];ct=ld('ct')||[];const m=ld('mx');if(m)mx=m}
+function se(){sv(wk(),ents)}
+
+function $(id){return document.getElementById(id)}
+function say(m){const e=$('live');e.textContent='';setTimeout(()=>e.textContent=m,50)}
+function flash(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+function esc(v){const s=String(v??'');return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:s}
+
+function go(n){
+  ['List','Settings','Help','Day','Task','Det'].forEach(v=>$('v'+v).hidden=v.toLowerCase()!==n);
+  if(n==='list')rL();if(n==='settings')rS();if(n==='day')rD();if(n==='task')rT();if(n==='det')rDt();
+  window.scrollTo(0,0);
+}
+
+function rL(){
+  ls();$('wkLbl').textContent=fR(ws);
+  const tot=ents.reduce((a,e)=>a+e.time,0);
+  const ou=ents.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
+  const w=tot-ou,cl=Math.min(w,mx),ow=w>mx?w-mx:0;
+  $('summ').textContent=`${tot} hours logged. ${cl} claimed out of ${mx} max. ${ow>0?ow+' hours owing.':'No time owing.'} ${ents.length} ${ents.length===1?'entry':'entries'}.`;
+  $('expBtn').hidden=!ents.length;$('clrBtn').hidden=!ents.length;
+  const so=[...ents].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
+  if(!so.length){$('eList').innerHTML='<p style="color:#888;font-style:italic">No entries yet.</p>';return}
+  $('eList').innerHTML=so.map(e=>{const ri=ents.indexOf(e);return`<article class="ec" aria-label="${e.day}, ${e.task}, ${e.time} hours"><p style="font-weight:700">${e.day} — ${e.time}h</p><p style="font-weight:600">${e.task}${e.participant?' ('+e.participant+')':''}</p><p class="m">${e.details}${e.admin?' · '+e.admin:''}</p><button class="lk" onclick="edE(${ri})" aria-label="Edit ${e.day} ${e.task}">Edit</button> <button class="lk d" onclick="dlE(${ri})" style="margin-left:1.5rem" aria-label="Delete ${e.day} ${e.task}">Delete</button></article>`}).join('');
+}
+
+function prevWeek(){ws.setDate(ws.getDate()-7);ws=new Date(ws);sW();go('list');say('Moved to '+fR(ws))}
+function nextWeek(){ws.setDate(ws.getDate()+7);ws=new Date(ws);sW();go('list');say('Moved to '+fR(ws))}
+
+function startAdd(){sD='';sK='';eI=null;$('ctI').value='';$('fP').value='';$('fD').value='';$('fA').value='';$('fH').value='';sT();go('day');say('Step 1 of 3. Choose a day.')}
+
+function rD(){$('dayB').innerHTML=DAYS.map(d=>`<button class="lb" aria-pressed="${sD===d}" onclick="pD('${d}')">${d}</button>`).join('')}
+function pD(d){sD=d;sS();go('task');say(`${d}. Step 2 of 3. Choose a task type.`)}
+
+function rT(){$('tH').textContent=`Step 2 of 3 — ${sD} — Pick Task`;const a=[...DT,...ct];$('taskB').innerHTML=a.map(t=>`<button class="lb" aria-pressed="${sK===t}" onclick="pK('${t.replace(/'/g,"\\'")}')">${t}</button>`).join('');$('ctI').value=''}
+function pK(t){sK=t;$('ctI').value='';rT()}
+
+function confirmTask(){const c=$('ctI').value.trim(),task=sK||c;if(!task){flash('Pick or type a task');return}if(c&&!DT.includes(c)&&!ct.includes(c)){ct.push(c);sv('ct',ct)}sK=task;sS();go('det');say(`${task}. Step 3 of 3. Add details and hours.`)}
+
+let sH='';
+function rDt(){$('dH').textContent=`Step 3 of 3 — ${sD}, ${sK}`;$('svBtn').textContent=eI!==null?'Update Entry':'Save Entry';sH=$('fH').value;$('hrB').innerHTML=[.5,1,1.5,2,2.5,3,3.5,4].map(h=>`<button class="lb" aria-pressed="${sH===String(h)}" aria-label="${h} hours" onclick="pH(${h})">${h} hours</button>`).join('')}
+function pH(h){sH=String(h);$('fH').value=h;sT();rDt()}
+
+function submitEntry(){const h=parseFloat($('fH').value),det=$('fD').value.trim();if(!det||isNaN(h)||h<=0){flash('Add details and hours to save');say('Missing details or hours');return}const en={day:sD,task:sK,participant:$('fP').value.trim(),details:det,admin:$('fA').value.trim(),time:h};if(eI!==null){ents[eI]=en;flash('Entry updated');say(`Updated. ${en.day}, ${en.task}, ${en.time} hours.`)}else{ents.push(en);flash('Entry added');say(`Saved. ${en.day}, ${en.task}, ${en.time} hours.`)}se();sSv();eI=null;go('list')}
+
+function edE(i){const e=ents[i];sD=e.day;sK=e.task;eI=i;$('fP').value=e.participant;$('fD').value=e.details;$('fA').value=e.admin;$('fH').value=e.time;sT();go('det');say(`Editing ${e.day} ${e.task}`)}
+function dlE(i){const e=ents[i];ents.splice(i,1);se();sDl();flash('Deleted');say(`Deleted ${e.day} ${e.task}`);rL()}
+function clrWeek(){if(!ents.length)return;ents=[];se();sDl();flash('Cleared');say('All entries cleared');rL()}
+
+function doExport(){
+  if(!ents.length){flash('Nothing to export');return}
+  const so=[...ents].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
+  const ou=ents.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
+  const w=ents.reduce((a,e)=>a+e.time,0)-ou;
+  const lines=[`Week,${esc(fS(ws))},,,,`,',,,,,,','Day,Participant Code,Task,Task Details,Admin Details,Time',...so.map(e=>[esc(e.day),esc(e.participant),esc(e.task),esc(e.details),esc(e.admin),e.time].join(',')),',,,,,,',`,,,,"Total Time Claimed:",${Math.min(w,mx)}`,`,,,,"Time Owing:",${w>mx?w-mx:0}`];
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`timesheet_${wk()}.csv`;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  sEx();flash('CSV downloaded');say('Timesheet exported. Open in Excel or Numbers to share.');
+}
+
+function rS(){$('mxC').value=mx;$('mxBtns').innerHTML=[5,6,7,7.5,8,10].map(h=>`<button class="lb" aria-pressed="${mx===h}" aria-label="${h} hours per week" onclick="setMx(${h})">${h} hours</button>`).join('')}
+function setMx(v){v=parseFloat(v);if(isNaN(v)||v<=0)return;mx=v;sv('mx',v);$('mxC').value=v;sT();say(`Max hours set to ${v}`);flash(`Max hours: ${v}`);rS()}
+document.getElementById('mxC').addEventListener('change',function(){setMx(this.value)});
+
+ls();go('list');
+</script>
+
+</body>
+</html>
