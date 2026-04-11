@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#111111">
 <title>Timesheet</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
 <style>
 :root{--bg:#111;--surface:#1a1a2e;--border:#2a2a4a;--abg:#1a3a5c;--ab:#53a8b6;--text:#f0f0f0;--muted:#aaa;--accent:#e94560;--go:#4ecca3;--link:#53a8b6}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -168,7 +170,9 @@ const DT=['Admin','Research','Training','Time Owed'];
 let ws=gM(new Date()),ents=[],sD='',sK='',eI=null,ct=[],mx=7;
 
 function gM(d){const x=new Date(d);const y=x.getDay();x.setDate(x.getDate()-y+(y===0?-6:1));x.setHours(0,0,0,0);return x}
-function wk(){return ws.toISOString().slice(0,10)}
+function pad(n){return String(n).padStart(2,'0')}
+function wk(){return `${ws.getFullYear()}-${pad(ws.getMonth()+1)}-${pad(ws.getDate())}`}
+function dateFor(day){const i=DAYS.indexOf(day);if(i<0)return'';const d=new Date(ws);d.setDate(d.getDate()+i);return d.toLocaleDateString('en-IE',{day:'numeric',month:'short'})}
 function fR(d){const e=new Date(d);e.setDate(e.getDate()+4);return`Week of ${d.toLocaleDateString('en-IE',{day:'numeric',month:'short'})} — ${e.toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})}`}
 function fS(d){const day=d.getDate(),m=d.toLocaleDateString('en-IE',{month:'long'}),y=d.getFullYear(),s=[1,21,31].includes(day)?'st':[2,22].includes(day)?'nd':[3,23].includes(day)?'rd':'th';return`${day}${s} ${m} ${y}`}
 
@@ -180,7 +184,8 @@ function se(){sv(wk(),ents)}
 function $(id){return document.getElementById(id)}
 function say(m){const e=$('live');e.textContent='';setTimeout(()=>e.textContent=m,50)}
 function flash(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
-function esc(v){const s=String(v??'');return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:s}
+function esc(v){const s=String(v??'');return s.includes(',')||s.includes('"')||s.includes('\n')||s.includes('\r')?`"${s.replace(/"/g,'""')}"`:s}
+function h(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 function go(n){
   ['List','Settings','Help','Day','Task','Det'].forEach(v=>$('v'+v).hidden=v.toLowerCase()!==n);
@@ -197,7 +202,7 @@ function rL(){
   $('expBtn').hidden=!ents.length;$('clrBtn').hidden=!ents.length;
   const so=[...ents].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
   if(!so.length){$('eList').innerHTML='<p style="color:#888;font-style:italic">No entries yet.</p>';return}
-  $('eList').innerHTML=so.map(e=>{const ri=ents.indexOf(e);return`<article class="ec" aria-label="${e.day}, ${e.task}, ${e.time} hours"><p style="font-weight:700">${e.day} — ${e.time}h</p><p style="font-weight:600">${e.task}${e.participant?' ('+e.participant+')':''}</p><p class="m">${e.details}${e.admin?' · '+e.admin:''}</p><button class="lk" onclick="edE(${ri})" aria-label="Edit ${e.day} ${e.task}">Edit</button> <button class="lk d" onclick="dlE(${ri})" style="margin-left:1.5rem" aria-label="Delete ${e.day} ${e.task}">Delete</button></article>`}).join('');
+  $('eList').innerHTML=so.map(e=>{const ri=ents.indexOf(e);return`<article class="ec" aria-label="${h(e.day)}, ${h(e.task)}, ${e.time} hours"><p style="font-weight:700">${h(e.day)} — ${e.time}h</p><p style="font-weight:600">${h(e.task)}${e.participant?' ('+h(e.participant)+')':''}</p><p class="m">${h(e.details)}${e.admin?' · '+h(e.admin):''}</p><button class="lk" onclick="edE(${ri})" aria-label="Edit ${h(e.day)} ${h(e.task)}">Edit</button> <button class="lk d" onclick="dlE(${ri})" style="margin-left:1.5rem" aria-label="Delete ${h(e.day)} ${h(e.task)}">Delete</button></article>`}).join('');
 }
 
 function prevWeek(){ws.setDate(ws.getDate()-7);ws=new Date(ws);sW();go('list');say('Moved to '+fR(ws))}
@@ -208,10 +213,12 @@ function startAdd(){sD='';sK='';eI=null;$('ctI').value='';$('fP').value='';$('fD
 function rD(){$('dayB').innerHTML=DAYS.map(d=>`<button class="lb" aria-pressed="${sD===d}" onclick="pD('${d}')">${d}</button>`).join('')}
 function pD(d){sD=d;sS();go('task');say(`${d}. Step 2 of 3. Choose a task type.`)}
 
-function rT(){$('tH').textContent=`Step 2 of 3 — ${sD} — Pick Task`;const a=[...DT,...ct];$('taskB').innerHTML=a.map(t=>`<button class="lb" aria-pressed="${sK===t}" onclick="pK('${t.replace(/'/g,"\\'")}')">${t}</button>`).join('');$('ctI').value=''}
+let tList=[];
+function rT(){$('tH').textContent=`Step 2 of 3 — ${sD} — Pick Task`;tList=[...DT,...ct];$('taskB').innerHTML=tList.map((t,i)=>`<button class="lb" aria-pressed="${sK===t}" onclick="pKi(${i})">${h(t)}</button>`).join('');$('ctI').value=''}
+function pKi(i){pK(tList[i])}
 function pK(t){sK=t;$('ctI').value='';rT()}
 
-function confirmTask(){const c=$('ctI').value.trim(),task=sK||c;if(!task){flash('Pick or type a task');return}if(c&&!DT.includes(c)&&!ct.includes(c)){ct.push(c);sv('ct',ct)}sK=task;sS();go('det');say(`${task}. Step 3 of 3. Add details and hours.`)}
+function confirmTask(){const c=$('ctI').value.trim(),task=sK||c;if(!task){flash('Pick or type a task');return}if(!sK&&c&&!DT.includes(c)&&!ct.includes(c)){ct.push(c);sv('ct',ct)}sK=task;sS();go('det');say(`${task}. Step 3 of 3. Add details and hours.`)}
 
 let sH='';
 function rDt(){$('dH').textContent=`Step 3 of 3 — ${sD}, ${sK}`;$('svBtn').textContent=eI!==null?'Update Entry':'Save Entry';sH=$('fH').value;$('hrB').innerHTML=[.5,1,1.5,2,2.5,3,3.5,4].map(h=>`<button class="lb" aria-pressed="${sH===String(h)}" aria-label="${h} hours" onclick="pH(${h})">${h} hours</button>`).join('')}
@@ -219,26 +226,60 @@ function pH(h){sH=String(h);$('fH').value=h;sT();rDt()}
 
 function submitEntry(){const h=parseFloat($('fH').value),det=$('fD').value.trim();if(!det||isNaN(h)||h<=0){flash('Add details and hours to save');say('Missing details or hours');return}const en={day:sD,task:sK,participant:$('fP').value.trim(),details:det,admin:$('fA').value.trim(),time:h};if(eI!==null){ents[eI]=en;flash('Entry updated');say(`Updated. ${en.day}, ${en.task}, ${en.time} hours.`)}else{ents.push(en);flash('Entry added');say(`Saved. ${en.day}, ${en.task}, ${en.time} hours.`)}se();sSv();eI=null;go('list')}
 
-function edE(i){const e=ents[i];sD=e.day;sK=e.task;eI=i;$('fP').value=e.participant;$('fD').value=e.details;$('fA').value=e.admin;$('fH').value=e.time;sT();go('det');say(`Editing ${e.day} ${e.task}`)}
+function edE(i){const e=ents[i];sD=e.day;sK=e.task;eI=i;$('fP').value=e.participant||'';$('fD').value=e.details||'';$('fA').value=e.admin||'';$('fH').value=e.time;sT();go('det');say(`Editing ${e.day} ${e.task}`)}
 function dlE(i){const e=ents[i];ents.splice(i,1);se();sDl();flash('Deleted');say(`Deleted ${e.day} ${e.task}`);rL()}
 function clrWeek(){if(!ents.length)return;ents=[];se();sDl();flash('Cleared');say('All entries cleared');rL()}
 
-function doExport(){
-  if(!ents.length){flash('Nothing to export');return}
+function buildCsv(){
   const so=[...ents].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
   const ou=ents.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
   const w=ents.reduce((a,e)=>a+e.time,0)-ou;
-  const lines=[`Week,${esc(fS(ws))},,,,`,',,,,,,','Day,Participant Code,Task,Task Details,Admin Details,Time',...so.map(e=>[esc(e.day),esc(e.participant),esc(e.task),esc(e.details),esc(e.admin),e.time].join(',')),',,,,,,',`,,,,"Total Time Claimed:",${Math.min(w,mx)}`,`,,,,"Time Owing:",${w>mx?w-mx:0}`];
-  const blob=new Blob([lines.join('\n')],{type:'text/csv'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`timesheet_${wk()}.csv`;document.body.appendChild(a);a.click();document.body.removeChild(a);
-  sEx();flash('CSV downloaded');say('Timesheet exported. Open in Excel or Numbers to share.');
+  const claimed=Math.max(0,Math.min(w,mx));
+  const owing=w>mx?w-mx:0;
+  const rows=[
+    [esc(`Timesheet — Week of ${fS(ws)}`),'','','','',''],
+    ['Day','Participant Code','Task','Task Details','Admin Details','Time'],
+    ...so.map(e=>[esc(`${e.day} ${dateFor(e.day)}`),esc(e.participant),esc(e.task),esc(e.details),esc(e.admin),e.time]),
+    ['','','','','',''],
+    ['','','','','Total Time Claimed:',claimed],
+    ['','','','','Time Owing:',owing]
+  ];
+  return '\ufeff'+rows.map(r=>r.join(',')).join('\r\n');
+}
+
+function doExport(){
+  if(!ents.length){flash('Nothing to export');return}
+  const csv=buildCsv();
+  const name=`timesheet_${wk()}.csv`;
+  const done=m=>{sEx();flash(m);say('Timesheet exported. Open in Excel or Numbers to share.')};
+  const fallback=()=>{
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=name;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+    done('CSV downloaded');
+  };
+  try{
+    const file=new File([csv],name,{type:'text/csv'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:'Timesheet'}).then(()=>done('Shared')).catch(err=>{
+        if(err&&err.name==='AbortError')return;
+        fallback();
+      });
+      return;
+    }
+  }catch(e){}
+  fallback();
 }
 
 function rS(){$('mxC').value=mx;$('mxBtns').innerHTML=[5,6,7,7.5,8,10].map(h=>`<button class="lb" aria-pressed="${mx===h}" aria-label="${h} hours per week" onclick="setMx(${h})">${h} hours</button>`).join('')}
-function setMx(v){v=parseFloat(v);if(isNaN(v)||v<=0)return;mx=v;sv('mx',v);$('mxC').value=v;sT();say(`Max hours set to ${v}`);flash(`Max hours: ${v}`);rS()}
+function setMx(v){v=parseFloat(v);if(isNaN(v)||v<=0||v>80){flash('Enter 1–80 hours');return}mx=v;sv('mx',v);$('mxC').value=v;sT();say(`Max hours set to ${v}`);flash(`Max hours: ${v}`);rS()}
 document.getElementById('mxC').addEventListener('change',function(){setMx(this.value)});
 
 ls();go('list');
+
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 </script>
 
 </body>
