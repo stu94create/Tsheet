@@ -261,7 +261,7 @@ function doExport(){
     done('CSV downloaded');
   };
   try{
-    const file=new File([csv],name,{type:'text/csv'});
+    const file=new File([csv],name);
     if(navigator.canShare&&navigator.canShare({files:[file]})){
       navigator.share({files:[file]}).then(()=>done('Shared')).catch(err=>{
         if(err&&err.name==='AbortError')return;
