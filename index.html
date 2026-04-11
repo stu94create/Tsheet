@@ -98,11 +98,12 @@ input:focus,textarea:focus{border-color:var(--link)}
 <h3>The summary</h3>
 <p>The summary shows your total hours, how many are claimed (capped at your max — set this in Settings), and any time owing. "Time Owed" entries are subtracted before calculating.</p>
 <h3>Custom tasks</h3>
-<p>On the task step, pick a built-in type or type your own. Custom tasks are remembered and appear as buttons next time.</p>
-<h3>Exporting for Excel</h3>
-<p>At the end of the week, tap "Export for Excel." On iPhone and iPad the share sheet opens straight away — choose "Copy to Excel," "Copy to Numbers," or "Mail" to send it wherever you need. No trip to the Files app required.</p>
-<h3>Emailing it to someone</h3>
-<p>Tap "Export for Excel," then pick Mail in the share sheet. A new email opens with the timesheet already attached as a CSV file. Add the address and a subject, then tap Send.</p>
+<p>On the task step, pick a built-in type or type your own. Custom tasks are remembered and appear as buttons next time. To remove one you no longer need, tap the ✕ next to it on the task step — this only removes it from the list, any existing entries using it stay put.</p>
+<h3>Exporting</h3>
+<p>At the end of the week, tap "Export for Excel." The iOS share sheet opens — the quickest path is usually:</p>
+<p>Tap <strong>Mail</strong> to send it to yourself or someone else. A new email opens with the timesheet already attached as a CSV file.</p>
+<p>Or tap <strong>Save to Files</strong>, pick On My iPhone or iCloud Drive, then open the Files app, tap the file, tap Share, and choose Copy to Excel or Copy to Numbers.</p>
+<p>If Excel or Numbers appear directly in the share sheet (scroll down past the apps row to check), you can tap them from there too — but this depends on your iOS version, and Save to Files always works.</p>
 <h3>On a computer</h3>
 <p>On a desktop browser the export downloads as a CSV file instead of opening the share sheet. Open it in Excel or Numbers from your Downloads folder.</p>
 <h3>Settings</h3>
@@ -212,9 +213,10 @@ function rD(){$('dayB').innerHTML=DAYS.map(d=>`<button class="lb" aria-pressed="
 function pD(d){sD=d;sS();go('task');say(`${d}. Step 2 of 3. Choose a task type.`)}
 
 let tList=[];
-function rT(){$('tH').textContent=`Step 2 of 3 — ${sD} — Pick Task`;tList=[...DT,...ct];$('taskB').innerHTML=tList.map((t,i)=>`<button class="lb" aria-pressed="${sK===t}" onclick="pKi(${i})">${h(t)}</button>`).join('');$('ctI').value=''}
+function rT(){$('tH').textContent=`Step 2 of 3 — ${sD} — Pick Task`;tList=[...DT,...ct];$('taskB').innerHTML=tList.map((t,i)=>{const isCustom=i>=DT.length;if(isCustom){const ci=i-DT.length;return `<div style="display:flex;gap:.4rem;margin-bottom:.4rem"><button class="lb" style="flex:1;margin-bottom:0" aria-pressed="${sK===t}" onclick="pKi(${i})">${h(t)}</button><button class="lb" style="flex:0 0 auto;margin-bottom:0;padding:.9rem 1rem;color:var(--accent);font-weight:700" onclick="dlCt(${ci})" aria-label="Delete custom task ${h(t)}">✕</button></div>`}return `<button class="lb" aria-pressed="${sK===t}" onclick="pKi(${i})">${h(t)}</button>`}).join('');$('ctI').value=''}
 function pKi(i){pK(tList[i])}
 function pK(t){sK=t;$('ctI').value='';rT()}
+function dlCt(i){const name=ct[i];if(!confirm(`Delete custom task "${name}"?\n\n(This only removes it from the list. Existing entries using it stay put.)`))return;ct.splice(i,1);sv('ct',ct);if(sK===name)sK='';sDl();flash(`Deleted "${name}"`);say(`Deleted custom task ${name}`);rT()}
 
 function confirmTask(){const c=$('ctI').value.trim(),task=sK||c;if(!task){flash('Pick or type a task');return}if(!sK&&c&&!DT.includes(c)&&!ct.includes(c)){ct.push(c);sv('ct',ct)}sK=task;sS();go('det');say(`${task}. Step 3 of 3. Add details and hours.`)}
 
