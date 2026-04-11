@@ -165,7 +165,7 @@ function sEx(){ea();[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.25,
 function sW(){tone(400,.15,'sine',.06);tone(500,.15,'sine',.06)}
 
 // State
-const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const DT=['Admin','Research','Training','Time Owed'];
 let ws=gM(new Date()),ents=[],sD='',sK='',eI=null,ct=[],mx=7;
 
@@ -173,7 +173,7 @@ function gM(d){const x=new Date(d);const y=x.getDay();x.setDate(x.getDate()-y+(y
 function pad(n){return String(n).padStart(2,'0')}
 function wk(){return `${ws.getFullYear()}-${pad(ws.getMonth()+1)}-${pad(ws.getDate())}`}
 function dateFor(day){const i=DAYS.indexOf(day);if(i<0)return'';const d=new Date(ws);d.setDate(d.getDate()+i);return d.toLocaleDateString('en-IE',{day:'numeric',month:'short'})}
-function fR(d){const e=new Date(d);e.setDate(e.getDate()+4);return`Week of ${d.toLocaleDateString('en-IE',{day:'numeric',month:'short'})} — ${e.toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})}`}
+function fR(d){const e=new Date(d);e.setDate(e.getDate()+6);return`Week of ${d.toLocaleDateString('en-IE',{day:'numeric',month:'short'})} — ${e.toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})}`}
 function fS(d){const day=d.getDate(),m=d.toLocaleDateString('en-IE',{month:'long'}),y=d.getFullYear(),s=[1,21,31].includes(day)?'st':[2,22].includes(day)?'nd':[3,23].includes(day)?'rd':'th';return`${day}${s} ${m} ${y}`}
 
 function ld(k){try{const r=localStorage.getItem('ts_'+k);return r?JSON.parse(r):null}catch{return null}}
