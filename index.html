@@ -100,12 +100,12 @@ input:focus,textarea:focus{border-color:var(--link)}
 <h3>Custom tasks</h3>
 <p>On the task step, pick a built-in type or type your own. Custom tasks are remembered and appear as buttons next time. To remove one you no longer need, tap the ✕ next to it on the task step — this only removes it from the list, any existing entries using it stay put.</p>
 <h3>Exporting your timesheet</h3>
-<p>At the end of the week, tap "Export Timesheet." The iOS share sheet opens.</p>
-<p>Tap <strong>Save to Files</strong>, pick a location like On My iPhone or iCloud Drive, and tap Save.</p>
-<p>Then open the <strong>Files</strong> app, find the file where you saved it, and tap it. Tap the Share button (the square with the arrow pointing up), and choose Copy to Excel or Copy to Numbers. The file opens straight into the app and you can email, edit or send it from there.</p>
+<p>At the end of the week, tap "Export Timesheet." The export is a proper Excel file (.xlsx) with headers, column widths, borders and a shaded totals row — so it opens looking tidy in Excel or Numbers without any manual formatting.</p>
+<p>The iOS share sheet opens. Tap <strong>Save to Files</strong>, pick a location like On My iPhone or iCloud Drive, and tap Save.</p>
+<p>Then open the <strong>Files</strong> app, find the file where you saved it, and tap it. Tap the Share button (the square with the arrow pointing up), and choose Copy to Excel or Copy to Numbers. The file opens straight into the app ready to view, edit, email or send on.</p>
 <p>If you just want to email it to someone, you can also tap <strong>Mail</strong> directly from the first share sheet — a new email opens with the file already attached.</p>
 <h3>On a computer</h3>
-<p>On a desktop browser the export downloads a file to your Downloads folder. Open it in Excel or Numbers from there.</p>
+<p>On a desktop browser the export downloads an .xlsx file to your Downloads folder. Double-tap it to open in Excel or Numbers.</p>
 <h3>Settings</h3>
 <p>In Settings you can change your maximum weekly hours. The default is 7.</p>
 <button class="bb" style="background:var(--surface);color:var(--link)" onclick="go('list')">← Back to Timesheet</button>
@@ -230,38 +230,105 @@ function edE(i){const e=ents[i];sD=e.day;sK=e.task;eI=i;$('fP').value=e.particip
 function dlE(i){const e=ents[i];ents.splice(i,1);se();sDl();flash('Deleted');say(`Deleted ${e.day} ${e.task}`);rL()}
 function clrWeek(){if(!ents.length)return;ents=[];se();sDl();flash('Cleared');say('All entries cleared');rL()}
 
-function buildCsv(){
+// CRC32 for zip
+const crc32=(()=>{const t=new Uint32Array(256);for(let i=0;i<256;i++){let c=i;for(let j=0;j<8;j++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;t[i]=c>>>0}return a=>{let c=0xffffffff;for(let i=0;i<a.length;i++)c=(c>>>8)^t[(c^a[i])&0xff];return (c^0xffffffff)>>>0}})();
+
+// Minimal ZIP writer (stored, no compression) — enough for .xlsx
+function zipIt(files){
+  const parts=[],central=[];let offset=0;
+  const now=new Date();
+  const dT=((now.getHours()&31)<<11)|((now.getMinutes()&63)<<5)|((now.getSeconds()/2)&31);
+  const dD=(((now.getFullYear()-1980)&127)<<9)|(((now.getMonth()+1)&15)<<5)|(now.getDate()&31);
+  const enc=new TextEncoder();
+  for(const f of files){
+    const nb=enc.encode(f.name),data=f.data,crc=crc32(data),size=data.length;
+    const loc=new Uint8Array(30+nb.length);const dv=new DataView(loc.buffer);
+    dv.setUint32(0,0x04034b50,true);dv.setUint16(4,20,true);dv.setUint16(6,0,true);dv.setUint16(8,0,true);
+    dv.setUint16(10,dT,true);dv.setUint16(12,dD,true);dv.setUint32(14,crc,true);
+    dv.setUint32(18,size,true);dv.setUint32(22,size,true);
+    dv.setUint16(26,nb.length,true);dv.setUint16(28,0,true);loc.set(nb,30);
+    parts.push(loc);parts.push(data);
+    const cd=new Uint8Array(46+nb.length);const cv=new DataView(cd.buffer);
+    cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);
+    cv.setUint16(8,0,true);cv.setUint16(10,0,true);cv.setUint16(12,dT,true);cv.setUint16(14,dD,true);
+    cv.setUint32(16,crc,true);cv.setUint32(20,size,true);cv.setUint32(24,size,true);
+    cv.setUint16(28,nb.length,true);cv.setUint16(30,0,true);cv.setUint16(32,0,true);
+    cv.setUint16(34,0,true);cv.setUint16(36,0,true);cv.setUint32(38,0,true);
+    cv.setUint32(42,offset,true);cd.set(nb,46);
+    central.push(cd);offset+=loc.length+data.length;
+  }
+  let cSize=0;for(const c of central)cSize+=c.length;
+  const end=new Uint8Array(22);const edv=new DataView(end.buffer);
+  edv.setUint32(0,0x06054b50,true);edv.setUint16(4,0,true);edv.setUint16(6,0,true);
+  edv.setUint16(8,files.length,true);edv.setUint16(10,files.length,true);
+  edv.setUint32(12,cSize,true);edv.setUint32(16,offset,true);edv.setUint16(20,0,true);
+  const out=new Uint8Array(offset+cSize+22);let p=0;
+  for(const part of parts){out.set(part,p);p+=part.length}
+  for(const c of central){out.set(c,p);p+=c.length}
+  out.set(end,p);return out;
+}
+
+function buildXlsx(){
   const so=[...ents].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
   const ou=ents.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
   const w=ents.reduce((a,e)=>a+e.time,0)-ou;
   const claimed=Math.max(0,Math.min(w,mx));
   const owing=w>mx?w-mx:0;
-  const rows=[
-    [esc(`Timesheet — Week of ${fS(ws)}`),'','','','',''],
-    ['Day','Participant Code','Task','Task Details','Admin Details','Time'],
-    ...so.map(e=>[esc(`${e.day} ${dateFor(e.day)}`),esc(e.participant),esc(e.task),esc(e.details),esc(e.admin),e.time]),
-    ['','','','','',''],
-    ['','','','','Total Time Claimed:',claimed],
-    ['','','','','Time Owing:',owing]
-  ];
-  return '\ufeff'+rows.map(r=>r.join(',')).join('\r\n');
+  const xe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+  const sC=(r,s,v)=>`<c r="${r}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`;
+  const nC=(r,s,v)=>`<c r="${r}" s="${s}"><v>${v}</v></c>`;
+  const col=i=>String.fromCharCode(65+i);
+  const hdrs=['Day','Participant Code','Task','Task Details','Admin Details','Time'];
+  let body='';
+  body+=`<row r="1" ht="26" customHeight="1">${sC('A1',1,`Timesheet — Week of ${fS(ws)}`)}</row>`;
+  body+=`<row r="2" ht="22" customHeight="1">${hdrs.map((t,i)=>sC(col(i)+'2',2,t)).join('')}</row>`;
+  so.forEach((e,i)=>{
+    const r=i+3;
+    body+=`<row r="${r}" ht="20" customHeight="1">${sC('A'+r,3,`${e.day} ${dateFor(e.day)}`)}${sC('B'+r,3,e.participant||'')}${sC('C'+r,3,e.task||'')}${sC('D'+r,3,e.details||'')}${sC('E'+r,3,e.admin||'')}${nC('F'+r,4,e.time)}</row>`;
+  });
+  const t1=so.length+3,t2=t1+1;
+  body+=`<row r="${t1}" ht="22" customHeight="1">${sC('A'+t1,3,'')}${sC('B'+t1,3,'')}${sC('C'+t1,3,'')}${sC('D'+t1,3,'')}${sC('E'+t1,5,'Total Time Claimed')}${nC('F'+t1,6,claimed)}</row>`;
+  body+=`<row r="${t2}" ht="22" customHeight="1">${sC('A'+t2,3,'')}${sC('B'+t2,3,'')}${sC('C'+t2,3,'')}${sC('D'+t2,3,'')}${sC('E'+t2,5,'Time Owing')}${nC('F'+t2,6,owing)}</row>`;
+  const lastRow=t2;
+  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="A1:F${lastRow}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="16" customWidth="1"/><col min="3" max="3" width="14" customWidth="1"/><col min="4" max="4" width="38" customWidth="1"/><col min="5" max="5" width="22" customWidth="1"/><col min="6" max="6" width="8" customWidth="1"/></cols><sheetData>${body}</sheetData><mergeCells count="1"><mergeCell ref="A1:F1"/></mergeCells><pageMargins left="0.5" right="0.5" top="0.5" bottom="0.5" header="0.3" footer="0.3"/></worksheet>`;
+  const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="16"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEEEEEE"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FF808080"/></left><right style="thin"><color rgb="FF808080"/></right><top style="thin"><color rgb="FF808080"/></top><bottom style="thin"><color rgb="FF808080"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="7"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Timesheet" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  const enc=new TextEncoder();
+  return zipIt([
+    {name:'[Content_Types].xml',data:enc.encode(ct)},
+    {name:'_rels/.rels',data:enc.encode(rels)},
+    {name:'xl/workbook.xml',data:enc.encode(wb)},
+    {name:'xl/_rels/workbook.xml.rels',data:enc.encode(wbRels)},
+    {name:'xl/styles.xml',data:enc.encode(styles)},
+    {name:'xl/worksheets/sheet1.xml',data:enc.encode(sheet)}
+  ]);
 }
 
 function doExport(){
   if(!ents.length){flash('Nothing to export');return}
-  const csv=buildCsv();
-  const name=`timesheet_${wk()}.csv`;
+  const data=buildXlsx();
+  const name=`timesheet_${wk()}.xlsx`;
+  const type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const done=m=>{sEx();flash(m);say('Timesheet exported. Save to Files, then open from Files to share.')};
   const fallback=()=>{
-    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+    const blob=new Blob([data],{type});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;a.download=name;
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     setTimeout(()=>URL.revokeObjectURL(url),1500);
-    done('CSV downloaded');
+    done('Downloaded');
   };
   try{
-    const file=new File([csv],name,{type:'text/csv'});
+    const file=new File([data],name,{type});
     if(navigator.canShare&&navigator.canShare({files:[file]})){
       navigator.share({files:[file]}).then(()=>done('Shared')).catch(err=>{
         if(err&&err.name==='AbortError')return;
