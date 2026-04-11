@@ -1,6 +1,6 @@
 // Timesheet service worker — caches the app shell for offline use.
 // Bump V when you publish a change so clients pick up the new version.
-const V = 'ts-v3';
+const V = 'ts-v4';
 const FILES = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {

@@ -261,7 +261,7 @@ function doExport(){
   try{
     const file=new File([csv],name,{type:'text/csv'});
     if(navigator.canShare&&navigator.canShare({files:[file]})){
-      navigator.share({files:[file],title:'Timesheet'}).then(()=>done('Shared')).catch(err=>{
+      navigator.share({files:[file]}).then(()=>done('Shared')).catch(err=>{
         if(err&&err.name==='AbortError')return;
         fallback();
       });
