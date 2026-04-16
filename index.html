@@ -32,8 +32,9 @@ input:focus,textarea:focus{border-color:var(--link)}
 .ec{background:var(--surface);border-radius:10px;padding:1rem;margin-bottom:.6rem}
 .ec p{margin:0 0 .15rem;color:var(--text)}
 .ec .m{font-size:.9rem;color:var(--muted);margin-bottom:.5rem}
-.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--go);color:#000;padding:.75rem 1.25rem;border-radius:10px;font-weight:600;font-size:.95rem;z-index:100;opacity:0;transition:opacity .3s;pointer-events:none}
-.toast.show{opacity:1}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--go);color:#000;padding:.75rem 1.25rem;border-radius:10px;font-weight:600;font-size:.95rem;z-index:100;opacity:0;transition:opacity .3s;pointer-events:none;display:flex;align-items:center;gap:.75rem}
+.toast.show{opacity:1;pointer-events:auto}
+.toast .undo{background:none;border:2px solid #000;color:#000;font-weight:700;font-size:.85rem;padding:.25rem .6rem;border-radius:6px;cursor:pointer;font-family:inherit}
 [hidden]{display:none!important}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 .sep{border:none;border-top:1px solid #2a2a4a;margin:1.25rem 0}
@@ -84,6 +85,13 @@ input:focus,textarea:focus{border-color:var(--link)}
 <div id="mxBtns"></div>
 <label for="mxC"><h3>Or type a custom max</h3></label>
 <input id="mxC" type="number" min="1" max="40" step="0.5" aria-label="Custom maximum hours">
+<hr class="sep">
+<h3>Backup your data</h3>
+<p style="margin-top:0">Save all your entries, custom tasks and settings to a file. Use this before clearing your browser data or switching phones.</p>
+<button class="bb" style="background:var(--go);color:#000" onclick="doBackup()">Download Backup</button>
+<h3>Restore from backup</h3>
+<p style="margin-top:0">Load a backup file to restore your data. This replaces your current entries.</p>
+<label class="bb" style="background:var(--surface);color:var(--link);cursor:pointer;text-align:center" tabindex="0" role="button" aria-label="Choose backup file to restore">Choose Backup File<input type="file" id="restoreFile" accept=".json" hidden onchange="doRestore(this)"></label>
 <button class="bb" style="background:var(--surface);color:var(--link)" onclick="go('list')">← Back to Timesheet</button>
 </section>
 
@@ -166,7 +174,7 @@ function sW(){tone(400,.15,'sine',.06);tone(500,.15,'sine',.06)}
 // State
 const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const DT=['Admin','Research','Training','Time Owed'];
-let ws=gM(new Date()),ents=[],sD='',sK='',eI=null,ct=[],mx=7;
+let ws=gM(new Date()),ents=[],sD='',sK='',eI=null,ct=[],mx=7,undoTimer=null;
 
 function gM(d){const x=new Date(d);const y=x.getDay();x.setDate(x.getDate()-y+(y===0?-6:1));x.setHours(0,0,0,0);return x}
 function pad(n){return String(n).padStart(2,'0')}
@@ -182,7 +190,7 @@ function se(){sv(wk(),ents)}
 
 function $(id){return document.getElementById(id)}
 function say(m){const e=$('live');e.textContent='';setTimeout(()=>e.textContent=m,50)}
-function flash(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+function flash(m){clearTimeout(undoTimer);const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
 function esc(v){const s=String(v??'');return s.includes(',')||s.includes('"')||s.includes('\n')||s.includes('\r')?`"${s.replace(/"/g,'""')}"`:s}
 function h(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -227,8 +235,18 @@ function pH(h){sH=String(h);$('fH').value=h;sT();rDt()}
 function submitEntry(){const h=parseFloat($('fH').value),det=$('fD').value.trim();if(!det||isNaN(h)||h<=0){flash('Add details and hours to save');say('Missing details or hours');return}const en={day:sD,task:sK,participant:$('fP').value.trim(),details:det,admin:$('fA').value.trim(),time:h};if(eI!==null){ents[eI]=en;flash('Entry updated');say(`Updated. ${en.day}, ${en.task}, ${en.time} hours.`)}else{ents.push(en);flash('Entry added');say(`Saved. ${en.day}, ${en.task}, ${en.time} hours.`)}se();sSv();eI=null;go('list')}
 
 function edE(i){const e=ents[i];sD=e.day;sK=e.task;eI=i;$('fP').value=e.participant||'';$('fD').value=e.details||'';$('fA').value=e.admin||'';$('fH').value=e.time;sT();go('det');say(`Editing ${e.day} ${e.task}`)}
-function dlE(i){const e=ents[i];ents.splice(i,1);se();sDl();flash('Deleted');say(`Deleted ${e.day} ${e.task}`);rL()}
-function clrWeek(){if(!ents.length)return;ents=[];se();sDl();flash('Cleared');say('All entries cleared');rL()}
+function flashUndo(msg,undoFn){
+  clearTimeout(undoTimer);
+  const t=$('toast');t.innerHTML='';
+  t.appendChild(document.createTextNode(msg+' '));
+  const btn=document.createElement('button');btn.className='undo';btn.textContent='Undo';
+  btn.onclick=function(){clearTimeout(undoTimer);t.classList.remove('show');undoFn()};
+  t.appendChild(btn);
+  t.classList.add('show');
+  undoTimer=setTimeout(()=>t.classList.remove('show'),5000);
+}
+function dlE(i){const e=ents[i];const backup=JSON.parse(JSON.stringify(ents));ents.splice(i,1);se();sDl();rL();say(`Deleted ${e.day} ${e.task}`);flashUndo('Deleted',()=>{ents=backup;se();sT();rL();say('Undo delete')})}
+function clrWeek(){if(!ents.length)return;const backup=JSON.parse(JSON.stringify(ents));ents=[];se();sDl();rL();say('All entries cleared');flashUndo('Cleared',()=>{ents=backup;se();sT();rL();say('Undo clear')})}
 
 // CRC32 for zip
 const crc32=(()=>{const t=new Uint32Array(256);for(let i=0;i<256;i++){let c=i;for(let j=0;j<8;j++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;t[i]=c>>>0}return a=>{let c=0xffffffff;for(let i=0;i<a.length;i++)c=(c>>>8)^t[(c^a[i])&0xff];return (c^0xffffffff)>>>0}})();
@@ -354,9 +372,55 @@ function rS(){$('mxC').value=mx;$('mxBtns').innerHTML=[5,6,7,7.5,8,10].map(h=>`<
 function setMx(v){v=parseFloat(v);if(isNaN(v)||v<=0||v>80){flash('Enter 1–80 hours');return}mx=v;sv('mx',v);$('mxC').value=v;sT();say(`Max hours set to ${v}`);flash(`Max hours: ${v}`);rS()}
 document.getElementById('mxC').addEventListener('change',function(){setMx(this.value)});
 
+function doBackup(){
+  const data={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k.startsWith('ts_'))data[k]=localStorage.getItem(k);
+  }
+  const json=JSON.stringify(data,null,2);
+  const name=`timesheet_backup_${new Date().toISOString().slice(0,10)}.json`;
+  const blob=new Blob([json],{type:'application/json'});
+  try{
+    const file=new File([json],name,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file]}).then(()=>{flash('Backup shared');say('Backup shared.')}).catch(err=>{
+        if(err&&err.name==='AbortError')return;
+        dlBlob(blob,name);
+      });
+      return;
+    }
+  }catch(e){}
+  dlBlob(blob,name);
+}
+function dlBlob(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  flash('Backup downloaded');say('Backup downloaded.');
+}
+function doRestore(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(){
+    try{
+      const data=JSON.parse(reader.result);
+      const keys=Object.keys(data).filter(k=>k.startsWith('ts_'));
+      if(!keys.length){flash('Not a valid backup file');return}
+      if(!confirm(`Restore ${keys.length} items? This replaces your current data.`))return;
+      keys.forEach(k=>localStorage.setItem(k,data[k]));
+      ls();flash('Restored');say('Backup restored.');go('list');
+    }catch(e){flash('Could not read backup file')}
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
 ls();go('list');
 
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
+if(navigator.storage&&navigator.storage.persist){navigator.storage.persist().catch(()=>{})}
 </script>
 
 </body>
