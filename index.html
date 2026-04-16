@@ -379,7 +379,7 @@ function doBackup(){
     if(k.startsWith('ts_'))data[k]=localStorage.getItem(k);
   }
   const json=JSON.stringify(data,null,2);
-  const name=`timesheet_backup_${new Date().toISOString().slice(0,10)}.json`;
+  const name=`Timesheet App Backup ${new Date().toISOString().slice(0,10)}.json`;
   const blob=new Blob([json],{type:'application/json'});
   try{
     const file=new File([json],name,{type:'application/json'});
