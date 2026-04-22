@@ -91,6 +91,11 @@ input:focus,textarea:focus{border-color:var(--link)}
 <div id="toaBtns"></div>
 <label for="toaC"><h3>Or type a custom allowance</h3></label>
 <input id="toaC" type="number" min="0" max="500" step="1" aria-label="Custom time off allowance in hours">
+<h3>Sick leave allowance</h3>
+<p style="margin-top:0">Set your total available sick leave for the year (in hours). When you log entries with "Sick Leave" as the task, the app tracks how much you've used. Set to 0 to disable tracking but still see a total.</p>
+<div id="slaBtns"></div>
+<label for="slaC"><h3>Or type a custom allowance</h3></label>
+<input id="slaC" type="number" min="0" max="500" step="1" aria-label="Custom sick leave allowance in hours">
 <hr class="sep">
 <h3>Backup your data</h3>
 <p style="margin-top:0">Save all your entries, custom tasks and settings to a file. Use this before clearing your browser data or switching phones.</p>
@@ -120,12 +125,12 @@ input:focus,textarea:focus{border-color:var(--link)}
 <p>If you just want to email it to someone, you can also tap <strong>Mail</strong> directly from the first share sheet — a new email opens with the file already attached.</p>
 <h3>On a computer</h3>
 <p>On a desktop browser the export downloads an .xlsx file to your Downloads folder. Double-tap it to open in Excel or Numbers.</p>
-<h3>Time off</h3>
-<p>To log time off, choose "Time Off" as the task type when adding an entry. In Settings you can set your total time off allowance for the year (in hours). The app tracks how much you've used across all weeks and shows how much remains on the main screen.</p>
+<h3>Time off and sick leave</h3>
+<p>To log time off or sick leave, choose "Time Off" or "Sick Leave" as the task type when adding an entry. In Settings you can set an allowance for each (in hours). The app tracks how much you've used across all weeks and shows how much remains on the main screen. If you don't set an allowance, you'll still see a running total of hours taken.</p>
 <h3>Hours owing</h3>
 <p>If you work more than your weekly max, the extra hours are "owing." The app tracks this across all your saved weeks and shows the cumulative total on the main screen below the weekly summary.</p>
 <h3>Settings</h3>
-<p>In Settings you can change your maximum weekly hours (default 7), set your time off allowance, and back up or restore your data.</p>
+<p>In Settings you can change your maximum weekly hours (default 7), set your time off and sick leave allowances, and back up or restore your data.</p>
 <button class="bb" style="background:var(--surface);color:var(--link)" onclick="go('list')">← Back to Timesheet</button>
 </section>
 
@@ -183,8 +188,8 @@ function sW(){tone(400,.15,'sine',.06);tone(500,.15,'sine',.06)}
 
 // State
 const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-const DT=['Admin','Research','Training','Time Off','Time Owed'];
-let ws=gM(new Date()),ents=[],sD='',sK='',eI=null,ct=[],mx=7,toa=0,undoTimer=null;
+const DT=['Admin','Research','Training','Time Off','Sick Leave','Time Owed'];
+let ws=gM(new Date()),ents=[],sD='',sK='',eI=null,ct=[],mx=7,toa=0,sla=0,undoTimer=null;
 
 function gM(d){const x=new Date(d);const y=x.getDay();x.setDate(x.getDate()-y+(y===0?-6:1));x.setHours(0,0,0,0);return x}
 function pad(n){return String(n).padStart(2,'0')}
@@ -195,7 +200,7 @@ function fS(d){const day=d.getDate(),m=d.toLocaleDateString('en-IE',{month:'long
 
 function ld(k){try{const r=localStorage.getItem('ts_'+k);return r?JSON.parse(r):null}catch{return null}}
 function sv(k,v){try{localStorage.setItem('ts_'+k,JSON.stringify(v))}catch{}}
-function ls(){ents=ld(wk())||[];ct=ld('ct')||[];const m=ld('mx');if(m)mx=m;const t=ld('toa');if(t)toa=t}
+function ls(){ents=ld(wk())||[];ct=ld('ct')||[];const m=ld('mx');if(m)mx=m;const t=ld('toa');if(t)toa=t;const s=ld('sla');if(s)sla=s}
 function se(){sv(wk(),ents)}
 
 function $(id){return document.getElementById(id)}
@@ -228,17 +233,20 @@ function rL(){
   const w=tot-ou,cl=Math.min(w,mx),ow=w>mx?w-mx:0;
   $('summ').textContent=`${tot} hours logged. ${cl} claimed out of ${mx} max. ${ow>0?ow+' hours owing.':'No time owing.'} ${ents.length} ${ents.length===1?'entry':'entries'}.`;
   const weeks=allWeeks();
-  let cumOw=0,cumOff=0;
+  let cumOw=0,cumOff=0,cumSick=0;
   weeks.forEach(we=>{
     const wOu=we.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
     const wTot=we.reduce((a,e)=>a+e.time,0)-wOu;
     if(wTot>mx)cumOw+=wTot-mx;
     cumOff+=we.filter(e=>e.task==='Time Off').reduce((a,e)=>a+e.time,0);
+    cumSick+=we.filter(e=>e.task==='Sick Leave').reduce((a,e)=>a+e.time,0);
   });
   let cumText='';
   if(cumOw>0)cumText+=`${cumOw} hours owing total across all weeks. `;
-  if(toa>0)cumText+=`Time off: ${cumOff} of ${toa} hours used. ${Math.max(0,toa-cumOff)} remaining.`;
-  else if(cumOff>0)cumText+=`${cumOff} hours time off taken.`;
+  if(toa>0)cumText+=`Time off: ${cumOff} of ${toa} hours used. ${Math.max(0,toa-cumOff)} remaining. `;
+  else if(cumOff>0)cumText+=`${cumOff} hours time off taken. `;
+  if(sla>0)cumText+=`Sick leave: ${cumSick} of ${sla} hours used. ${Math.max(0,sla-cumSick)} remaining.`;
+  else if(cumSick>0)cumText+=`${cumSick} hours sick leave taken.`;
   $('cumm').textContent=cumText;$('cumm').hidden=!cumText;
   $('expBtn').hidden=!ents.length;$('clrBtn').hidden=!ents.length;
   const so=[...ents].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
@@ -405,11 +413,14 @@ function doExport(){
 function rS(){
   $('mxC').value=mx;$('mxBtns').innerHTML=[5,6,7,7.5,8,10].map(h=>`<button class="lb" aria-pressed="${mx===h}" aria-label="${h} hours per week" onclick="setMx(${h})">${h} hours</button>`).join('');
   $('toaC').value=toa||'';$('toaBtns').innerHTML=[0,35,70,100,140,200].map(v=>`<button class="lb" aria-pressed="${toa===v}" aria-label="${v?v+' hours time off':'No time off tracking'}" onclick="setToa(${v})">${v?v+' hours':'Off'}</button>`).join('');
+  $('slaC').value=sla||'';$('slaBtns').innerHTML=[0,21,35,56,70].map(v=>`<button class="lb" aria-pressed="${sla===v}" aria-label="${v?v+' hours sick leave':'No sick leave tracking'}" onclick="setSla(${v})">${v?v+' hours':'Off'}</button>`).join('');
 }
 function setMx(v){v=parseFloat(v);if(isNaN(v)||v<=0||v>80){flash('Enter 1–80 hours');return}mx=v;sv('mx',v);$('mxC').value=v;sT();say(`Max hours set to ${v}`);flash(`Max hours: ${v}`);rS()}
 function setToa(v){v=parseFloat(v);if(isNaN(v)||v<0||v>500){flash('Enter 0–500 hours');return}toa=v;sv('toa',v);$('toaC').value=v||'';sT();say(v?`Time off allowance set to ${v} hours`:'Time off tracking disabled');flash(v?`Time off: ${v} hours`:'Time off tracking off');rS()}
+function setSla(v){v=parseFloat(v);if(isNaN(v)||v<0||v>500){flash('Enter 0–500 hours');return}sla=v;sv('sla',v);$('slaC').value=v||'';sT();say(v?`Sick leave allowance set to ${v} hours`:'Sick leave tracking disabled');flash(v?`Sick leave: ${v} hours`:'Sick leave tracking off');rS()}
 document.getElementById('mxC').addEventListener('change',function(){setMx(this.value)});
 document.getElementById('toaC').addEventListener('change',function(){setToa(this.value)});
+document.getElementById('slaC').addEventListener('change',function(){setSla(this.value)});
 
 function doBackup(){
   const data={};
