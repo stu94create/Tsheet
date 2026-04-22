@@ -41,7 +41,7 @@ input:focus,textarea:focus{border-color:var(--link)}
 </style>
 </head>
 <body>
-<header><h1>Timesheet</h1><a href="https://ko-fi.com/st94410093" target="_blank" rel="noopener" style="display:inline-block;background:var(--border);color:var(--link);font-size:.8rem;text-decoration:none;font-weight:600;padding:.35rem .75rem;border-radius:20px">☕ Support</a></header>
+<header><h1>Timesheet</h1><a href="https://ko-fi.com/st94410093" target="_blank" rel="noopener" style="display:inline-block;background:var(--border);color:var(--link);font-size:.8rem;text-decoration:none;font-weight:600;padding:.35rem .75rem;border-radius:20px" aria-label="Support this app on Ko-fi">☕ Support</a></header>
 <div class="w">
 <div id="live" role="status" aria-live="polite" class="sr"></div>
 
@@ -202,13 +202,12 @@ function fS(d){const day=d.getDate(),m=d.toLocaleDateString('en-IE',{month:'long
 
 function ld(k){try{const r=localStorage.getItem('ts_'+k);return r?JSON.parse(r):null}catch{return null}}
 function sv(k,v){try{localStorage.setItem('ts_'+k,JSON.stringify(v))}catch{}}
-function ls(){ents=ld(wk())||[];ct=ld('ct')||[];const m=ld('mx');if(m)mx=m;const t=ld('toa');if(t)toa=t;const s=ld('sla');if(s)sla=s}
+function ls(){ents=ld(wk())||[];ct=ld('ct')||[];const m=ld('mx');if(m!==null)mx=m;const t=ld('toa');if(t!==null)toa=t;const s=ld('sla');if(s!==null)sla=s}
 function se(){sv(wk(),ents)}
 
 function $(id){return document.getElementById(id)}
 function say(m){const e=$('live');e.textContent='';setTimeout(()=>e.textContent=m,50)}
 function flash(m){clearTimeout(undoTimer);const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
-function esc(v){const s=String(v??'');return s.includes(',')||s.includes('"')||s.includes('\n')||s.includes('\r')?`"${s.replace(/"/g,'""')}"`:s}
 function h(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 function go(n){
@@ -221,7 +220,7 @@ function allWeeks(){
   const weeks=[];
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);
-    if(k.startsWith('ts_')&&k!=='ts_ct'&&k!=='ts_mx'&&k!=='ts_toa'){
+    if(k.startsWith('ts_')&&k!=='ts_ct'&&k!=='ts_mx'&&k!=='ts_toa'&&k!=='ts_sla'){
       try{const e=JSON.parse(localStorage.getItem(k));if(Array.isArray(e))weeks.push(e)}catch(e){}
     }
   }
@@ -276,7 +275,7 @@ let sH='';
 function rDt(){$('dH').textContent=`Step 3 of 3 — ${sD}, ${sK}`;$('svBtn').textContent=eI!==null?'Update Entry':'Save Entry';sH=$('fH').value;$('hrB').innerHTML=[.5,1,1.5,2,2.5,3,3.5,4].map(h=>`<button class="lb" aria-pressed="${sH===String(h)}" aria-label="${h} hours" onclick="pH(${h})">${h} hours</button>`).join('')}
 function pH(h){sH=String(h);$('fH').value=h;sT();rDt()}
 
-function submitEntry(){const h=parseFloat($('fH').value),det=$('fD').value.trim();if(!det||isNaN(h)||h<=0){flash('Add details and hours to save');say('Missing details or hours');return}const en={day:sD,task:sK,participant:$('fP').value.trim(),details:det,admin:$('fA').value.trim(),time:h};if(eI!==null){ents[eI]=en;flash('Entry updated');say(`Updated. ${en.day}, ${en.task}, ${en.time} hours.`)}else{ents.push(en);flash('Entry added');say(`Saved. ${en.day}, ${en.task}, ${en.time} hours.`)}se();sSv();eI=null;go('list')}
+function submitEntry(){const h=parseFloat($('fH').value),det=$('fD').value.trim();if(!det||isNaN(h)||h<=0){flash('Add details and hours to save');say('Missing details or hours');return}if(h>24){flash('Hours can’t exceed 24');say('Hours too high');return}const en={day:sD,task:sK,participant:$('fP').value.trim(),details:det,admin:$('fA').value.trim(),time:h};if(eI!==null){ents[eI]=en;flash('Entry updated');say(`Updated. ${en.day}, ${en.task}, ${en.time} hours.`)}else{ents.push(en);flash('Entry added');say(`Saved. ${en.day}, ${en.task}, ${en.time} hours.`)}se();sSv();eI=null;go('list')}
 
 function edE(i){const e=ents[i];sD=e.day;sK=e.task;eI=i;$('fP').value=e.participant||'';$('fD').value=e.details||'';$('fA').value=e.admin||'';$('fH').value=e.time;sT();go('det');say(`Editing ${e.day} ${e.task}`)}
 function flashUndo(msg,undoFn){
@@ -290,7 +289,7 @@ function flashUndo(msg,undoFn){
   undoTimer=setTimeout(()=>t.classList.remove('show'),5000);
 }
 function dlE(i){const e=ents[i];const backup=JSON.parse(JSON.stringify(ents));ents.splice(i,1);se();sDl();rL();say(`Deleted ${e.day} ${e.task}`);flashUndo('Deleted',()=>{ents=backup;se();sT();rL();say('Undo delete')})}
-function clrWeek(){if(!ents.length)return;const backup=JSON.parse(JSON.stringify(ents));ents=[];se();sDl();rL();say('All entries cleared');flashUndo('Cleared',()=>{ents=backup;se();sT();rL();say('Undo clear')})}
+function clrWeek(){if(!ents.length)return;if(!confirm(`Clear all ${ents.length} entries this week?`))return;const backup=JSON.parse(JSON.stringify(ents));ents=[];se();sDl();rL();say('All entries cleared');flashUndo('Cleared',()=>{ents=backup;se();sT();rL();say('Undo clear')})}
 
 // CRC32 for zip
 const crc32=(()=>{const t=new Uint32Array(256);for(let i=0;i<256;i++){let c=i;for(let j=0;j<8;j++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;t[i]=c>>>0}return a=>{let c=0xffffffff;for(let i=0;i<a.length;i++)c=(c>>>8)^t[(c^a[i])&0xff];return (c^0xffffffff)>>>0}})();
