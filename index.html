@@ -276,7 +276,7 @@ function dlCt(i){const name=ct[i];if(!confirm(`Delete custom task "${name}"?\n\n
 function confirmTask(){const c=$('ctI').value.trim(),task=sK||c;if(!task){flash('Pick or type a task');return}if(!sK&&c&&!DT.includes(c)&&!ct.includes(c)){ct.push(c);sv('ct',ct)}sK=task;sS();go('det');say(`${task}. Step 3 of 3. Add details and hours.`)}
 
 let sH='';
-const QUICK_TASKS=['Hours Reclaimed'];
+const QUICK_TASKS=['Hours Reclaimed','Sick Leave','Time Off'];
 function rDt(){const quick=QUICK_TASKS.includes(sK);$('dH').textContent=quick?`${sK} — ${sD}`:`Step 3 of 3 — ${sD}, ${sK}`;$('detFields').hidden=quick;$('svBtn').textContent=eI!==null?'Update Entry':'Save Entry';sH=$('fH').value;$('hrB').innerHTML=[.5,1,1.5,2,2.5,3,3.5,4].map(h=>`<button class="lb" aria-pressed="${sH===String(h)}" aria-label="${h} hours" onclick="pH(${h})">${h} hours</button>`).join('')}
 function pH(h){sH=String(h);$('fH').value=h;sT();rDt()}
 
