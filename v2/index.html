@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#111111">
+<title>Timesheet</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+:root{--bg:#111;--surface:#1a1a2e;--border:#2a2a4a;--abg:#1a3a5c;--ab:#53a8b6;--text:#f0f0f0;--muted:#aaa;--accent:#e94560;--go:#4ecca3;--link:#53a8b6}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;-webkit-text-size-adjust:100%}
+*:focus-visible{outline:3px solid var(--link);outline-offset:2px}
+header{background:var(--surface);padding:1rem 1.25rem;border-bottom:2px solid #333;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:1.3rem;font-weight:700}
+.w{max-width:600px;margin:0 auto;padding:0 1rem 3rem}
+h2{font-size:1.2rem;font-weight:700;margin:1.25rem 0 .75rem}
+h3{font-size:1rem;font-weight:600;margin:1rem 0 .5rem;color:var(--muted)}
+p{font-size:.95rem;line-height:1.7;color:#ccc;margin:0 0 .75rem}
+.bb{display:block;width:100%;padding:1rem;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer;min-height:54px;font-family:inherit;margin-bottom:.5rem;text-align:left}
+.lb{display:block;width:100%;padding:.9rem 1rem;background:var(--surface);border:2px solid var(--border);border-radius:10px;font-size:1rem;font-family:inherit;color:#ddd;font-weight:500;cursor:pointer;min-height:50px;margin-bottom:.4rem;text-align:left}
+.lb[aria-pressed="true"]{background:var(--abg);border-color:var(--ab);color:var(--ab);font-weight:700}
+input,textarea{display:block;width:100%;padding:.85rem;background:var(--surface);color:var(--text);border:2px solid var(--border);border-radius:10px;font-size:1rem;font-family:inherit;margin-bottom:.75rem}
+textarea{resize:vertical;min-height:80px}
+input:focus,textarea:focus{border-color:var(--link)}
+.lk{background:none;border:none;color:var(--link);font-size:.95rem;cursor:pointer;padding:.3rem 0;font-family:inherit;text-decoration:underline}
+.lk.d{color:var(--accent)}
+.ec{background:var(--surface);border-radius:10px;padding:1rem;margin-bottom:.6rem}
+.ec p{margin:0 0 .15rem;color:var(--text)}
+.ec .m{font-size:.9rem;color:var(--muted);margin-bottom:.5rem}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--go);color:#000;padding:.75rem 1.25rem;border-radius:10px;font-weight:600;font-size:.95rem;z-index:100;opacity:0;transition:opacity .3s;pointer-events:none;display:flex;align-items:center;gap:.75rem}
+.toast.show{opacity:1;pointer-events:auto}
+.toast .undo{background:none;border:2px solid #000;color:#000;font-weight:700;font-size:.85rem;padding:.25rem .6rem;border-radius:6px;cursor:pointer;font-family:inherit}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.sep{border:none;border-top:1px solid #2a2a4a;margin:1.25rem 0}
+</style>
+</head>
+<body>
+<header><h1>Timesheet</h1><a href="https://ko-fi.com/st94410093" target="_blank" rel="noopener" style="display:inline-block;background:var(--border);color:var(--link);font-size:.8rem;text-decoration:none;font-weight:600;padding:.35rem .75rem;border-radius:20px" aria-label="Support this app on Ko-fi">☕ Support</a></header>
+<div class="w">
+<div id="live" role="status" aria-live="polite" class="sr"></div>
+
+<!-- LIST -->
+
+<section id="vList">
+
+<h2>Week</h2>
+<div style="display:flex;gap:.5rem;margin-bottom:.75rem">
+<button class="bb" style="background:var(--surface);color:var(--text)" onclick="prevWeek()" aria-label="Previous week">◀ Back</button>
+<button class="bb" style="background:var(--surface);color:var(--text)" onclick="nextWeek()" aria-label="Next week">Next ▶</button>
+</div>
+<p id="wkLbl" style="font-size:1.05rem;font-weight:600;color:var(--text)" aria-live="polite"></p>
+
+<button class="bb" style="background:var(--accent);color:#fff" onclick="startAdd()">+ Add Entry</button>
+
+<h2>Entries</h2>
+<div id="eList"></div>
+
+<h2>Summary</h2>
+<p id="summ"></p>
+<p id="cumm" style="font-size:.9rem;color:var(--muted);margin:0 0 .75rem"></p>
+
+<hr class="sep">
+
+<button class="bb" style="background:var(--go);color:#000" id="expBtn" onclick="doExport()">Export Timesheet</button>
+<button class="lk d" id="clrBtn" onclick="clrWeek()" aria-label="Clear all entries this week" style="margin-bottom:1rem">Clear all entries</button>
+
+<hr class="sep">
+
+<button class="bb" style="background:var(--surface);color:#ddd" onclick="go('settings')">Settings</button>
+<button class="bb" style="background:var(--surface);color:#ddd" onclick="go('help')">How to Use This</button>
+
+</section>
+
+<!-- SETTINGS -->
+
+<section id="vSettings" hidden>
+<h2>Settings</h2>
+<h3>Maximum hours per week</h3>
+<p style="margin-top:0">This caps your claimed hours. Anything above shows as time owing.</p>
+<div id="mxBtns"></div>
+<label for="mxC"><h3>Or type a custom max</h3></label>
+<input id="mxC" type="number" min="1" max="40" step="0.5" aria-label="Custom maximum hours">
+<h3>Time off allowance</h3>
+<p style="margin-top:0">Set your total available time off for the year (in hours). When you log entries with "Time Off" as the task, the app tracks how much you've used and how much remains.</p>
+<div id="toaBtns"></div>
+<label for="toaC"><h3>Or type a custom allowance</h3></label>
+<input id="toaC" type="number" min="0" max="500" step="1" aria-label="Custom time off allowance in hours">
+<h3>Sick leave allowance</h3>
+<p style="margin-top:0">Set your total available sick leave for the year (in hours). When you log entries with "Sick Leave" as the task, the app tracks how much you've used. Set to 0 to disable tracking but still see a total.</p>
+<div id="slaBtns"></div>
+<label for="slaC"><h3>Or type a custom allowance</h3></label>
+<input id="slaC" type="number" min="0" max="500" step="1" aria-label="Custom sick leave allowance in hours">
+<hr class="sep">
+<h3>Backup your data</h3>
+<p style="margin-top:0">Save all your entries, custom tasks and settings to a file. Use this before clearing your browser data or switching phones.</p>
+<button class="bb" style="background:var(--go);color:#000" onclick="doBackup()">Download Backup</button>
+<h3>Restore from backup</h3>
+<p style="margin-top:0">Load a backup file to restore your data. This replaces your current entries.</p>
+<label class="bb" style="background:var(--surface);color:var(--link);cursor:pointer;text-align:center" tabindex="0" role="button" aria-label="Choose backup file to restore">Choose Backup File<input type="file" id="restoreFile" accept=".json" hidden onchange="doRestore(this)"></label>
+<button class="bb" style="background:var(--surface);color:var(--link)" onclick="go('list')">← Back to Timesheet</button>
+</section>
+
+<!-- HELP -->
+
+<section id="vHelp" hidden>
+<h2>How to Use This</h2>
+<h3>Adding entries during the week</h3>
+<p>Tap "Add Entry" on the main screen. You'll go through 3 steps: pick a day, pick or type a task type, then fill in the details and hours. Tap "Save Entry" when you're done. You can add as many entries as you need throughout the week.</p>
+<h3>Editing or deleting</h3>
+<p>Each entry has Edit and Delete links underneath it. Edit takes you back to the details step so you can change anything. Delete removes the entry but gives you 5 seconds to tap Undo and get it back. The same applies when you clear all entries for a week.</p>
+<h3>The summary</h3>
+<p>The summary shows your total hours, how many are claimed (capped at your max — set this in Settings), and any time owing for the week.</p>
+<h3>Custom tasks</h3>
+<p>On the task step, pick a built-in type or type your own. Custom tasks are remembered and appear as buttons next time. To remove one you no longer need, tap the ✕ next to it on the task step — this only removes it from the list, any existing entries using it stay put.</p>
+<h3>Exporting your timesheet</h3>
+<p>At the end of the week, tap "Export Timesheet." The export is a proper Excel file (.xlsx) with headers, column widths, borders and a shaded totals row — so it opens looking tidy in Excel or Numbers without any manual formatting.</p>
+<p>The iOS share sheet opens. Tap <strong>Save to Files</strong>, pick a location like On My iPhone or iCloud Drive, and tap Save.</p>
+<p>Then open the <strong>Files</strong> app, find the file where you saved it, and tap it. Tap the Share button (the square with the arrow pointing up), and choose Copy to Excel or Copy to Numbers. The file opens straight into the app ready to view, edit, email or send on.</p>
+<p>If you just want to email it to someone, you can also tap <strong>Mail</strong> directly from the first share sheet — a new email opens with the file already attached.</p>
+<h3>On a computer</h3>
+<p>On a desktop browser the export downloads an .xlsx file to your Downloads folder. Double-tap it to open in Excel or Numbers.</p>
+<h3>Time off and sick leave</h3>
+<p>To log time off or sick leave, choose "Time Off" or "Sick Leave" as the task type when adding an entry. In Settings you can set an allowance for each (in hours). The app tracks how much you've used across all weeks and shows how much remains on the main screen. If you don't set an allowance, you'll still see a running total of hours taken.</p>
+<h3>Hours owing</h3>
+<p>If you work more than your weekly max, the extra hours are "owing." The app tracks this across all your saved weeks and shows the cumulative total on the main screen. To use your owed hours, add an entry with "Hours Reclaimed" as the task type. The app subtracts reclaimed hours from your total and shows both the earned and used amounts.</p>
+<h3>Backup and restore</h3>
+<p>In Settings, tap "Download Backup" to save all your entries, custom tasks and settings to a file. You can save it to iCloud Drive, email it to yourself, or keep it on your phone. To restore from a backup (e.g. on a new phone), tap "Choose Backup File" and pick the file. This replaces your current data.</p>
+<h3>Settings</h3>
+<p>In Settings you can change your maximum weekly hours (default 7), set your time off and sick leave allowances, and back up or restore your data.</p>
+<button class="bb" style="background:var(--surface);color:var(--link)" onclick="go('list')">← Back to Timesheet</button>
+</section>
+
+<!-- STEP 1: DAY -->
+
+<section id="vDay" hidden>
+<h2>Step 1 of 3 — Pick a Day</h2>
+<div id="dayB"></div>
+<button class="lk" onclick="go('list')" style="margin-top:.5rem">Cancel</button>
+</section>
+
+<!-- STEP 2: TASK -->
+
+<section id="vTask" hidden>
+<h2 id="tH">Step 2 of 3 — Pick Task</h2>
+<div id="taskB"></div>
+<label for="ctI"><h3>Or type a custom task</h3></label>
+<input id="ctI" type="text" placeholder="e.g. Mentoring, Meeting" aria-label="Custom task name">
+<button class="bb" style="background:var(--accent);color:#fff" onclick="confirmTask()">Next</button>
+<button class="lk" onclick="go('day')">Back to days</button>
+</section>
+
+<!-- STEP 3: DETAILS -->
+
+<section id="vDet" hidden>
+<h2 id="dH">Step 3 of 3</h2>
+<div id="detFields">
+<label for="fD"><h3>Task Details</h3></label>
+<textarea id="fD" placeholder="What did you work on?" rows="3"></textarea>
+<label for="fA"><h3>Admin Details (optional)</h3></label>
+<input id="fA" type="text" placeholder="Extra notes">
+</div>
+<h3 id="hL">Hours</h3>
+<div role="group" aria-labelledby="hL" id="hrB"></div>
+<label for="fH"><h3>Or type hours</h3></label>
+<input id="fH" type="number" min="0.25" max="8" step="0.25" placeholder="Custom hours">
+<button class="bb" style="background:var(--go);color:#000" id="svBtn" onclick="submitEntry()">Save Entry</button>
+<button class="lk" onclick="go('task')">Back to tasks</button>
+</section>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// Audio
+const AC=window.AudioContext||window.webkitAudioContext;let ax;
+function ea(){if(!ax)ax=new AC();if(ax.state==='suspended')ax.resume()}
+function tone(f,d,t,v){ea();const o=ax.createOscillator(),g=ax.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.value=v||.12;g.gain.exponentialRampToValueAtTime(.001,ax.currentTime+d);o.connect(g);g.connect(ax.destination);o.start();o.stop(ax.currentTime+d)}
+function sT(){tone(660,.08,'sine',.08)}
+function sS(){tone(520,.12,'triangle',.1)}
+function sSv(){ea();[440,554,659].forEach((f,i)=>setTimeout(()=>tone(f,.2,'sine',.1),i*80))}
+function sDl(){tone(260,.2,'triangle',.1)}
+function sEx(){ea();[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.25,'sine',.09),i*100))}
+function sW(){tone(400,.15,'sine',.06);tone(500,.15,'sine',.06)}
+
+// State
+const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const DT=['Admin','Research','Training','Time Off','Sick Leave','Hours Reclaimed'];
+let ws=gM(new Date()),ents=[],sD='',sK='',eI=null,ct=[],mx=7,toa=0,sla=0,undoTimer=null;
+
+function gM(d){const x=new Date(d);const y=x.getDay();x.setDate(x.getDate()-y+(y===0?-6:1));x.setHours(0,0,0,0);return x}
+function pad(n){return String(n).padStart(2,'0')}
+function wk(){return `${ws.getFullYear()}-${pad(ws.getMonth()+1)}-${pad(ws.getDate())}`}
+function dateFor(day){const i=DAYS.indexOf(day);if(i<0)return'';const d=new Date(ws);d.setDate(d.getDate()+i);return d.toLocaleDateString('en-IE',{day:'numeric',month:'short'})}
+function fR(d){const e=new Date(d);e.setDate(e.getDate()+6);return`Week of ${d.toLocaleDateString('en-IE',{day:'numeric',month:'short'})} — ${e.toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})}`}
+function fS(d){const day=d.getDate(),m=d.toLocaleDateString('en-IE',{month:'long'}),y=d.getFullYear(),s=[1,21,31].includes(day)?'st':[2,22].includes(day)?'nd':[3,23].includes(day)?'rd':'th';return`${day}${s} ${m} ${y}`}
+
+function ld(k){try{const r=localStorage.getItem('ts_'+k);return r?JSON.parse(r):null}catch{return null}}
+function sv(k,v){try{localStorage.setItem('ts_'+k,JSON.stringify(v))}catch{}}
+function ls(){ents=ld(wk())||[];ct=ld('ct')||[];const m=ld('mx');if(m!==null)mx=m;const t=ld('toa');if(t!==null)toa=t;const s=ld('sla');if(s!==null)sla=s}
+function se(){sv(wk(),ents)}
+
+function $(id){return document.getElementById(id)}
+function say(m){const e=$('live');e.textContent='';setTimeout(()=>e.textContent=m,50)}
+function flash(m){clearTimeout(undoTimer);const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+function h(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+function go(n){
+  ['List','Settings','Help','Day','Task','Det'].forEach(v=>$('v'+v).hidden=v.toLowerCase()!==n);
+  if(n==='list')rL();if(n==='settings')rS();if(n==='day')rD();if(n==='task')rT();if(n==='det')rDt();
+  window.scrollTo(0,0);
+}
+
+function allWeeks(){
+  const weeks=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k.startsWith('ts_')&&k!=='ts_ct'&&k!=='ts_mx'&&k!=='ts_toa'&&k!=='ts_sla'){
+      try{const e=JSON.parse(localStorage.getItem(k));if(Array.isArray(e))weeks.push(e)}catch(e){}
+    }
+  }
+  return weeks;
+}
+
+function rL(){
+  ls();$('wkLbl').textContent=fR(ws);
+  const tot=ents.reduce((a,e)=>a+e.time,0);
+  const ou=ents.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
+  const w=tot-ou,cl=Math.min(w,mx),ow=w>mx?w-mx:0;
+  $('summ').textContent=`${tot} hours logged. ${cl} claimed out of ${mx} max. ${ow>0?ow+' hours owing.':'No time owing.'} ${ents.length} ${ents.length===1?'entry':'entries'}.`;
+  const weeks=allWeeks();
+  let cumOw=0,cumRec=0,cumOff=0,cumSick=0;
+  weeks.forEach(we=>{
+    const wOu=we.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
+    const wTot=we.reduce((a,e)=>a+e.time,0)-wOu;
+    if(wTot>mx)cumOw+=wTot-mx;
+    cumRec+=we.filter(e=>e.task==='Hours Reclaimed').reduce((a,e)=>a+e.time,0);
+    cumOff+=we.filter(e=>e.task==='Time Off').reduce((a,e)=>a+e.time,0);
+    cumSick+=we.filter(e=>e.task==='Sick Leave').reduce((a,e)=>a+e.time,0);
+  });
+  const netOw=Math.max(0,cumOw-cumRec);
+  let cumText='';
+  if(cumOw>0){cumText+=`${netOw} hours owing${cumRec>0?` (${cumOw} earned, ${cumRec} used)`:' total across all weeks'}. `;}
+  if(toa>0)cumText+=`Time off: ${cumOff} of ${toa} hours used. ${Math.max(0,toa-cumOff)} remaining. `;
+  else if(cumOff>0)cumText+=`${cumOff} hours time off taken. `;
+  if(sla>0)cumText+=`Sick leave: ${cumSick} of ${sla} hours used. ${Math.max(0,sla-cumSick)} remaining.`;
+  else if(cumSick>0)cumText+=`${cumSick} hours sick leave taken.`;
+  $('cumm').textContent=cumText;$('cumm').hidden=!cumText;
+  $('expBtn').hidden=!ents.length;$('clrBtn').hidden=!ents.length;
+  const so=[...ents].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
+  if(!so.length){$('eList').innerHTML='<p style="color:#888;font-style:italic">No entries yet.</p>';return}
+  $('eList').innerHTML=so.map(e=>{const ri=ents.indexOf(e);return`<article class="ec" aria-label="${h(e.day)}, ${h(e.task)}, ${e.time} hours"><p style="font-weight:700">${h(e.day)} — ${e.time}h</p><p style="font-weight:600">${h(e.task)}</p><p class="m">${h(e.details)}${e.admin?' · '+h(e.admin):''}</p><button class="lk" onclick="edE(${ri})" aria-label="Edit ${h(e.day)} ${h(e.task)}">Edit</button> <button class="lk d" onclick="dlE(${ri})" style="margin-left:1.5rem" aria-label="Delete ${h(e.day)} ${h(e.task)}">Delete</button></article>`}).join('');
+}
+
+function prevWeek(){ws.setDate(ws.getDate()-7);ws=new Date(ws);sW();go('list');say('Moved to '+fR(ws))}
+function nextWeek(){ws.setDate(ws.getDate()+7);ws=new Date(ws);sW();go('list');say('Moved to '+fR(ws))}
+
+function startAdd(){sD='';sK='';eI=null;$('ctI').value='';$('fD').value='';$('fA').value='';$('fH').value='';sT();go('day');say('Step 1 of 3. Choose a day.')}
+
+function rD(){$('dayB').innerHTML=DAYS.map(d=>`<button class="lb" aria-pressed="${sD===d}" onclick="pD('${d}')">${d}</button>`).join('')}
+function pD(d){sD=d;sS();go('task');say(`${d}. Step 2 of 3. Choose a task type.`)}
+
+let tList=[];
+function rT(){$('tH').textContent=`Step 2 of 3 — ${sD} — Pick Task`;tList=[...DT,...ct];$('taskB').innerHTML=tList.map((t,i)=>{const isCustom=i>=DT.length;if(isCustom){const ci=i-DT.length;return `<div style="display:flex;gap:.4rem;margin-bottom:.4rem"><button class="lb" style="flex:1;margin-bottom:0" aria-pressed="${sK===t}" onclick="pKi(${i})">${h(t)}</button><button class="lb" style="flex:0 0 auto;margin-bottom:0;padding:.9rem 1rem;color:var(--accent);font-weight:700" onclick="dlCt(${ci})" aria-label="Delete custom task ${h(t)}">✕</button></div>`}return `<button class="lb" aria-pressed="${sK===t}" onclick="pKi(${i})">${h(t)}</button>`}).join('');$('ctI').value=''}
+function pKi(i){pK(tList[i])}
+function pK(t){sK=t;$('ctI').value='';rT()}
+function dlCt(i){const name=ct[i];if(!confirm(`Delete custom task "${name}"?\n\n(This only removes it from the list. Existing entries using it stay put.)`))return;ct.splice(i,1);sv('ct',ct);if(sK===name)sK='';sDl();flash(`Deleted "${name}"`);say(`Deleted custom task ${name}`);rT()}
+
+function confirmTask(){const c=$('ctI').value.trim(),task=sK||c;if(!task){flash('Pick or type a task');return}if(!sK&&c&&!DT.includes(c)&&!ct.includes(c)){ct.push(c);sv('ct',ct)}sK=task;sS();go('det');say(`${task}. Step 3 of 3. Add details and hours.`)}
+
+let sH='';
+const QUICK_TASKS=['Hours Reclaimed','Sick Leave','Time Off'];
+function rDt(){const quick=QUICK_TASKS.includes(sK);$('dH').textContent=quick?`${sK} — ${sD}`:`Step 3 of 3 — ${sD}, ${sK}`;$('detFields').hidden=quick;$('svBtn').textContent=eI!==null?'Update Entry':'Save Entry';sH=$('fH').value;$('hrB').innerHTML=[.5,1,1.5,2,2.5,3,3.5,4].map(h=>`<button class="lb" aria-pressed="${sH===String(h)}" aria-label="${h} hours" onclick="pH(${h})">${h} hours</button>`).join('')}
+function pH(h){sH=String(h);$('fH').value=h;sT();rDt()}
+
+function submitEntry(){const h=parseFloat($('fH').value),quick=QUICK_TASKS.includes(sK),det=quick?sK:$('fD').value.trim();if(!det||isNaN(h)||h<=0){flash(quick?'Pick the hours':'Add details and hours to save');say(quick?'Missing hours':'Missing details or hours');return}if(h>24){flash('Hours can’t exceed 24');say('Hours too high');return}const en={day:sD,task:sK,participant:'',details:det,admin:$('fA').value.trim(),time:h};if(eI!==null){ents[eI]=en;flash('Entry updated');say(`Updated. ${en.day}, ${en.task}, ${en.time} hours.`)}else{ents.push(en);flash('Entry added');say(`Saved. ${en.day}, ${en.task}, ${en.time} hours.`)}se();sSv();eI=null;go('list')}
+
+function edE(i){const e=ents[i];sD=e.day;sK=e.task;eI=i;$('fD').value=e.details||'';$('fA').value=e.admin||'';$('fH').value=e.time;sT();go('det');say(`Editing ${e.day} ${e.task}`)}
+function flashUndo(msg,undoFn){
+  clearTimeout(undoTimer);
+  const t=$('toast');t.innerHTML='';
+  t.appendChild(document.createTextNode(msg+' '));
+  const btn=document.createElement('button');btn.className='undo';btn.textContent='Undo';
+  btn.onclick=function(){clearTimeout(undoTimer);t.classList.remove('show');undoFn()};
+  t.appendChild(btn);
+  t.classList.add('show');
+  undoTimer=setTimeout(()=>t.classList.remove('show'),5000);
+}
+function dlE(i){const e=ents[i];const backup=JSON.parse(JSON.stringify(ents));ents.splice(i,1);se();sDl();rL();say(`Deleted ${e.day} ${e.task}`);flashUndo('Deleted',()=>{ents=backup;se();sT();rL();say('Undo delete')})}
+function clrWeek(){if(!ents.length)return;if(!confirm(`Clear all ${ents.length} entries this week?`))return;const backup=JSON.parse(JSON.stringify(ents));ents=[];se();sDl();rL();say('All entries cleared');flashUndo('Cleared',()=>{ents=backup;se();sT();rL();say('Undo clear')})}
+
+// CRC32 for zip
+const crc32=(()=>{const t=new Uint32Array(256);for(let i=0;i<256;i++){let c=i;for(let j=0;j<8;j++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;t[i]=c>>>0}return a=>{let c=0xffffffff;for(let i=0;i<a.length;i++)c=(c>>>8)^t[(c^a[i])&0xff];return (c^0xffffffff)>>>0}})();
+
+// Minimal ZIP writer (stored, no compression) — enough for .xlsx
+function zipIt(files){
+  const parts=[],central=[];let offset=0;
+  const now=new Date();
+  const dT=((now.getHours()&31)<<11)|((now.getMinutes()&63)<<5)|((now.getSeconds()/2)&31);
+  const dD=(((now.getFullYear()-1980)&127)<<9)|(((now.getMonth()+1)&15)<<5)|(now.getDate()&31);
+  const enc=new TextEncoder();
+  for(const f of files){
+    const nb=enc.encode(f.name),data=f.data,crc=crc32(data),size=data.length;
+    const loc=new Uint8Array(30+nb.length);const dv=new DataView(loc.buffer);
+    dv.setUint32(0,0x04034b50,true);dv.setUint16(4,20,true);dv.setUint16(6,0,true);dv.setUint16(8,0,true);
+    dv.setUint16(10,dT,true);dv.setUint16(12,dD,true);dv.setUint32(14,crc,true);
+    dv.setUint32(18,size,true);dv.setUint32(22,size,true);
+    dv.setUint16(26,nb.length,true);dv.setUint16(28,0,true);loc.set(nb,30);
+    parts.push(loc);parts.push(data);
+    const cd=new Uint8Array(46+nb.length);const cv=new DataView(cd.buffer);
+    cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);
+    cv.setUint16(8,0,true);cv.setUint16(10,0,true);cv.setUint16(12,dT,true);cv.setUint16(14,dD,true);
+    cv.setUint32(16,crc,true);cv.setUint32(20,size,true);cv.setUint32(24,size,true);
+    cv.setUint16(28,nb.length,true);cv.setUint16(30,0,true);cv.setUint16(32,0,true);
+    cv.setUint16(34,0,true);cv.setUint16(36,0,true);cv.setUint32(38,0,true);
+    cv.setUint32(42,offset,true);cd.set(nb,46);
+    central.push(cd);offset+=loc.length+data.length;
+  }
+  let cSize=0;for(const c of central)cSize+=c.length;
+  const end=new Uint8Array(22);const edv=new DataView(end.buffer);
+  edv.setUint32(0,0x06054b50,true);edv.setUint16(4,0,true);edv.setUint16(6,0,true);
+  edv.setUint16(8,files.length,true);edv.setUint16(10,files.length,true);
+  edv.setUint32(12,cSize,true);edv.setUint32(16,offset,true);edv.setUint16(20,0,true);
+  const out=new Uint8Array(offset+cSize+22);let p=0;
+  for(const part of parts){out.set(part,p);p+=part.length}
+  for(const c of central){out.set(c,p);p+=c.length}
+  out.set(end,p);return out;
+}
+
+function buildXlsx(){
+  const so=[...ents].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
+  const ou=ents.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
+  const w=ents.reduce((a,e)=>a+e.time,0)-ou;
+  const claimed=Math.max(0,Math.min(w,mx));
+  const owing=w>mx?w-mx:0;
+  const xe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+  const sC=(r,s,v)=>`<c r="${r}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`;
+  const nC=(r,s,v)=>`<c r="${r}" s="${s}" t="n"><v>${v}</v></c>`;
+  const col=i=>String.fromCharCode(65+i);
+  const hdrs=['Day','Task','Task Details','Admin Details','Time'];
+  let body='';
+  body+=`<row r="1" ht="26" customHeight="1">${sC('A1',1,`Timesheet — Week of ${fS(ws)}`)}</row>`;
+  body+=`<row r="2" ht="22" customHeight="1">${hdrs.map((t,i)=>sC(col(i)+'2',2,t)).join('')}</row>`;
+  so.forEach((e,i)=>{
+    const r=i+3;
+    body+=`<row r="${r}" ht="20" customHeight="1">${sC('A'+r,3,`${e.day} ${dateFor(e.day)}`)}${sC('B'+r,3,e.task||'')}${sC('C'+r,3,e.details||'')}${sC('D'+r,3,e.admin||'')}${nC('E'+r,4,e.time)}</row>`;
+  });
+  const t1=so.length+3,t2=t1+1;
+  body+=`<row r="${t1}" ht="22" customHeight="1">${sC('A'+t1,3,'')}${sC('B'+t1,3,'')}${sC('C'+t1,3,'')}${sC('D'+t1,5,'Total Time Claimed')}${nC('E'+t1,6,claimed)}</row>`;
+  body+=`<row r="${t2}" ht="22" customHeight="1">${sC('A'+t2,3,'')}${sC('B'+t2,3,'')}${sC('C'+t2,3,'')}${sC('D'+t2,5,'Time Owing')}${nC('E'+t2,6,owing)}</row>`;
+  const lastRow=t2;
+  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="A1:E${lastRow}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="14" customWidth="1"/><col min="3" max="3" width="38" customWidth="1"/><col min="4" max="4" width="22" customWidth="1"/><col min="5" max="5" width="8" customWidth="1"/></cols><sheetData>${body}</sheetData><mergeCells count="1"><mergeCell ref="A1:E1"/></mergeCells><pageMargins left="0.5" right="0.5" top="0.5" bottom="0.5" header="0.3" footer="0.3"/></worksheet>`;
+  const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="16"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEEEEEE"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FF808080"/></left><right style="thin"><color rgb="FF808080"/></right><top style="thin"><color rgb="FF808080"/></top><bottom style="thin"><color rgb="FF808080"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="7"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`;
+  const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Timesheet" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/></Relationships>`;
+  const nowIso=new Date().toISOString().replace(/\.\d+Z$/,'Z');
+  const core=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:creator>Timesheet</dc:creator><cp:lastModifiedBy>Timesheet</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">${nowIso}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${nowIso}</dcterms:modified></cp:coreProperties>`;
+  const app=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Timesheet</Application></Properties>`;
+  const theme=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Theme"><a:themeElements><a:clrScheme name="Office"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="1F497D"/></a:dk2><a:lt2><a:srgbClr val="EEECE1"/></a:lt2><a:accent1><a:srgbClr val="4F81BD"/></a:accent1><a:accent2><a:srgbClr val="C0504D"/></a:accent2><a:accent3><a:srgbClr val="9BBB59"/></a:accent3><a:accent4><a:srgbClr val="8064A2"/></a:accent4><a:accent5><a:srgbClr val="4BACC6"/></a:accent5><a:accent6><a:srgbClr val="F79646"/></a:accent6><a:hlink><a:srgbClr val="0000FF"/></a:hlink><a:folHlink><a:srgbClr val="800080"/></a:folHlink></a:clrScheme><a:fontScheme name="Office"><a:majorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Office"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="9525"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="9525"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="9525"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
+  const enc=new TextEncoder();
+  return zipIt([
+    {name:'[Content_Types].xml',data:enc.encode(ct)},
+    {name:'_rels/.rels',data:enc.encode(rels)},
+    {name:'docProps/app.xml',data:enc.encode(app)},
+    {name:'docProps/core.xml',data:enc.encode(core)},
+    {name:'xl/workbook.xml',data:enc.encode(wb)},
+    {name:'xl/_rels/workbook.xml.rels',data:enc.encode(wbRels)},
+    {name:'xl/theme/theme1.xml',data:enc.encode(theme)},
+    {name:'xl/styles.xml',data:enc.encode(styles)},
+    {name:'xl/worksheets/sheet1.xml',data:enc.encode(sheet)}
+  ]);
+}
+
+function doExport(){
+  if(!ents.length){flash('Nothing to export');return}
+  const data=buildXlsx();
+  const name=`timesheet_${wk()}.xlsx`;
+  const type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const done=m=>{sEx();flash(m);say('Timesheet exported. Save to Files, then open from Files to share.')};
+  const fallback=()=>{
+    const blob=new Blob([data],{type});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=name;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+    done('Downloaded');
+  };
+  try{
+    const file=new File([data],name,{type});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file]}).then(()=>done('Shared')).catch(err=>{
+        if(err&&err.name==='AbortError')return;
+        fallback();
+      });
+      return;
+    }
+  }catch(e){}
+  fallback();
+}
+
+function rS(){
+  $('mxC').value=mx;$('mxBtns').innerHTML=[5,6,7,7.5,8,10].map(h=>`<button class="lb" aria-pressed="${mx===h}" aria-label="${h} hours per week" onclick="setMx(${h})">${h} hours</button>`).join('');
+  $('toaC').value=toa||'';$('toaBtns').innerHTML=[0,35,70,100,140,200].map(v=>`<button class="lb" aria-pressed="${toa===v}" aria-label="${v?v+' hours time off':'No time off tracking'}" onclick="setToa(${v})">${v?v+' hours':'Off'}</button>`).join('');
+  $('slaC').value=sla||'';$('slaBtns').innerHTML=[0,21,35,56,70].map(v=>`<button class="lb" aria-pressed="${sla===v}" aria-label="${v?v+' hours sick leave':'No sick leave tracking'}" onclick="setSla(${v})">${v?v+' hours':'Off'}</button>`).join('');
+}
+function setMx(v){v=parseFloat(v);if(isNaN(v)||v<=0||v>80){flash('Enter 1–80 hours');return}mx=v;sv('mx',v);$('mxC').value=v;sT();say(`Max hours set to ${v}`);flash(`Max hours: ${v}`);rS()}
+function setToa(v){v=parseFloat(v);if(isNaN(v)||v<0||v>500){flash('Enter 0–500 hours');return}toa=v;sv('toa',v);$('toaC').value=v||'';sT();say(v?`Time off allowance set to ${v} hours`:'Time off tracking disabled');flash(v?`Time off: ${v} hours`:'Time off tracking off');rS()}
+function setSla(v){v=parseFloat(v);if(isNaN(v)||v<0||v>500){flash('Enter 0–500 hours');return}sla=v;sv('sla',v);$('slaC').value=v||'';sT();say(v?`Sick leave allowance set to ${v} hours`:'Sick leave tracking disabled');flash(v?`Sick leave: ${v} hours`:'Sick leave tracking off');rS()}
+document.getElementById('mxC').addEventListener('change',function(){setMx(this.value)});
+document.getElementById('toaC').addEventListener('change',function(){setToa(this.value)});
+document.getElementById('slaC').addEventListener('change',function(){setSla(this.value)});
+
+function doBackup(){
+  const data={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k.startsWith('ts_'))data[k]=localStorage.getItem(k);
+  }
+  const json=JSON.stringify(data,null,2);
+  const name=`Timesheet App Backup ${new Date().toISOString().slice(0,10)}.json`;
+  const blob=new Blob([json],{type:'application/json'});
+  try{
+    const file=new File([json],name,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file]}).then(()=>{flash('Backup shared');say('Backup shared.')}).catch(err=>{
+        if(err&&err.name==='AbortError')return;
+        dlBlob(blob,name);
+      });
+      return;
+    }
+  }catch(e){}
+  dlBlob(blob,name);
+}
+function dlBlob(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  flash('Backup downloaded');say('Backup downloaded.');
+}
+function doRestore(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(){
+    try{
+      const data=JSON.parse(reader.result);
+      const keys=Object.keys(data).filter(k=>k.startsWith('ts_'));
+      if(!keys.length){flash('Not a valid backup file');return}
+      if(!confirm(`Restore ${keys.length} items? This replaces your current data.`))return;
+      keys.forEach(k=>localStorage.setItem(k,data[k]));
+      ls();flash('Restored');say('Backup restored.');go('list');
+    }catch(e){flash('Could not read backup file')}
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+ls();go('list');
+
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
+if(navigator.storage&&navigator.storage.persist){navigator.storage.persist().catch(()=>{})}
+</script>
+
+</body>
+</html>
