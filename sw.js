@@ -1,6 +1,10 @@
 // Timesheet service worker — caches the app shell for offline use.
 // Bump V when you publish a change so clients pick up the new version.
-const V = 'ts-v23';
+// NOTE: uses the 'tsr-' prefix, and the activate cleanup below only deletes
+// caches with the same prefix. The old shared name ('ts-v23') is still used
+// by the v2/ copy of the app, and v3/ uses 'ts3-*' — this worker must never
+// evict theirs.
+const V = 'tsr-v1';
 const FILES = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
@@ -12,7 +16,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k))))
+      .then(ks => Promise.all(ks.filter(k => k.startsWith('tsr-') && k !== V).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

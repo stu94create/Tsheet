@@ -6,176 +6,439 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#111111">
+<meta name="theme-color" content="#0a0e1a">
 <title>Timesheet</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
 <style>
-:root{--bg:#111;--surface:#1a1a2e;--border:#2a2a4a;--abg:#1a3a5c;--ab:#53a8b6;--text:#f0f0f0;--muted:#aaa;--accent:#e94560;--go:#4ecca3;--link:#53a8b6}
+/* ---- Design tokens ---- */
+:root{
+--bg:#0a0e1a;--surface:#131a2e;--surface-2:#1a2440;--border:#263354;--border-strong:#33436e;
+--text:#f2f5fa;--text-2:#c3cde0;--muted:#a7b3cc;
+--primary:#2dd4bf;--primary-hi:#5eead4;--primary-ink:#03231f;--primary-dim:rgba(45,212,191,.14);
+--violet:#a78bfa;--violet-dim:rgba(167,139,250,.14);
+--danger:#f26d85;--danger-dim:rgba(242,109,133,.12);--danger-bd:rgba(242,109,133,.4);
+--ok:#4ecca3;--amber:#fbbf24;
+--bg-glow-1:rgba(45,212,191,.07);--bg-glow-2:rgba(167,139,250,.06);
+--hairline:rgba(255,255,255,.06);
+--r-sm:10px;--r-md:14px;--r-lg:20px;--r-xl:28px;--r-pill:999px;
+--fs-hero:clamp(3.25rem,14vw,4.25rem);--fs-xl:1.375rem;--fs-lg:1.125rem;--fs-md:1rem;--fs-sm:.875rem;--fs-xs:.75rem;
+--shadow-card:0 8px 28px rgba(0,0,0,.38);
+--ease-out:cubic-bezier(.22,1,.36,1);
+}
+/* ---- Base ---- */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg)}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;-webkit-text-size-adjust:100%}
-*:focus-visible{outline:3px solid var(--link);outline-offset:2px}
-header{background:var(--surface);padding:1rem 1.25rem;border-bottom:2px solid #333;display:flex;justify-content:space-between;align-items:center}
-header h1{font-size:1.3rem;font-weight:700}
-.w{max-width:600px;margin:0 auto;padding:0 1rem 3rem}
-h2{font-size:1.2rem;font-weight:700;margin:1.25rem 0 .75rem}
-h3{font-size:1rem;font-weight:600;margin:1rem 0 .5rem;color:var(--muted)}
-p{font-size:.95rem;line-height:1.7;color:#ccc;margin:0 0 .75rem}
-.bb{display:block;width:100%;padding:1rem;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer;min-height:54px;font-family:inherit;margin-bottom:.5rem;text-align:left}
-.lb{display:block;width:100%;padding:.9rem 1rem;background:var(--surface);border:2px solid var(--border);border-radius:10px;font-size:1rem;font-family:inherit;color:#ddd;font-weight:500;cursor:pointer;min-height:50px;margin-bottom:.4rem;text-align:left}
-.lb[aria-pressed="true"]{background:var(--abg);border-color:var(--ab);color:var(--ab);font-weight:700}
-input,textarea{display:block;width:100%;padding:.85rem;background:var(--surface);color:var(--text);border:2px solid var(--border);border-radius:10px;font-size:1rem;font-family:inherit;margin-bottom:.75rem}
-textarea{resize:vertical;min-height:80px}
-input:focus,textarea:focus{border-color:var(--link)}
-.lk{background:none;border:none;color:var(--link);font-size:.95rem;cursor:pointer;padding:.3rem 0;font-family:inherit;text-decoration:underline}
-.lk.d{color:var(--accent)}
-.ec{background:var(--surface);border-radius:10px;padding:1rem;margin-bottom:.6rem}
-.ec p{margin:0 0 .15rem;color:var(--text)}
-.ec .m{font-size:.9rem;color:var(--muted);margin-bottom:.5rem}
-.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--go);color:#000;padding:.75rem 1.25rem;border-radius:10px;font-weight:600;font-size:.95rem;z-index:100;opacity:0;transition:opacity .3s;pointer-events:none;display:flex;align-items:center;gap:.75rem}
-.toast.show{opacity:1;pointer-events:auto}
-.toast .undo{background:none;border:2px solid #000;color:#000;font-weight:700;font-size:.85rem;padding:.25rem .6rem;border-radius:6px;cursor:pointer;font-family:inherit}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(70% 45% at 12% 0%,var(--bg-glow-1),transparent 60%),radial-gradient(60% 45% at 100% 100%,var(--bg-glow-2),transparent 60%)}
+*:focus-visible{outline:3px solid var(--primary);outline-offset:2px;box-shadow:0 0 0 6px rgba(45,212,191,.22)}
+.w{max-width:640px;margin:0 auto;padding:0 calc(1rem + env(safe-area-inset-right)) 3.5rem calc(1rem + env(safe-area-inset-left))}
+h2{font-size:var(--fs-xl);font-weight:800;letter-spacing:-.01em;margin:1.5rem 0 .7rem}
+h3{font-size:.85rem;font-weight:700;letter-spacing:.02em;margin:1.1rem 0 .4rem;color:var(--text-2)}
+.flabel{display:block;font-size:.85rem;font-weight:700;letter-spacing:.02em;margin:1.1rem 0 .4rem;color:var(--text-2)}
+[tabindex="-1"]:focus:not(:focus-visible){outline:none;box-shadow:none}
+p{font-size:.95rem;line-height:1.7;color:var(--text-2);margin:0 0 .75rem}
+.ic{flex:0 0 auto;display:inline-block;vertical-align:-.18em}
+.footnote{font-size:var(--fs-sm);color:var(--muted);line-height:1.6}
+.eyebrow{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--primary);font-weight:700;margin:0 0 .3rem}
 [hidden]{display:none!important}
-.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
-.sep{border:none;border-top:1px solid #2a2a4a;margin:1.25rem 0}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;white-space:nowrap}
+.sep{border:none;border-top:1px solid var(--border);margin:1.4rem 0}
+/* ---- Header ---- */
+header{position:sticky;top:0;z-index:50;background:rgba(10,14,26,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:calc(.8rem + env(safe-area-inset-top)) 1.25rem .8rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:1.15rem;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:.6rem}
+.kofi{position:relative;background:linear-gradient(180deg,var(--surface-2),var(--surface));color:var(--text-2);border:1px solid var(--border);font-size:.8rem;text-decoration:none;font-weight:600;padding:.5rem .9rem;border-radius:var(--r-pill);display:inline-flex;align-items:center;gap:.4rem}
+.kofi .ic{color:var(--primary-hi)}
+.kofi::before{content:'';position:absolute;inset:-6px;border-radius:inherit}
+/* ---- Buttons ---- */
+.bb{display:flex;align-items:center;justify-content:center;gap:.55rem;width:100%;padding:1rem;border:none;border-radius:var(--r-md);font-size:1.05rem;font-weight:700;letter-spacing:.01em;cursor:pointer;min-height:54px;font-family:inherit;margin-bottom:.5rem;text-align:center;color:var(--text)}
+.bp{background:linear-gradient(180deg,var(--primary-hi) -40%,var(--primary) 90%);color:var(--primary-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 3px 12px rgba(3,35,31,.45)}
+.bp:active{filter:brightness(.95)}
+.bs{background:var(--surface);border:1px solid var(--border);box-shadow:inset 0 1px 0 var(--hairline)}
+.bs.pt{color:var(--primary-hi)}
+.bs.dg{color:var(--danger);border-color:var(--danger-bd)}
+@media (hover:hover){
+.bp:hover{filter:brightness(1.06)}
+.bs:hover,.icon-btn:hover{background:var(--surface-2);border-color:var(--border-strong)}
+.lb:not([aria-pressed="true"]):hover{background:var(--surface-2);border-color:var(--border-strong)}
+.ec-actions .ib:hover{border-color:var(--border-strong);color:var(--text)}
+.kofi:hover{border-color:var(--border-strong)}
+}
+.hero-add{min-height:58px;font-size:1.15rem;border-radius:var(--r-lg)}
+.icon-btn{width:48px;height:48px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:50%;color:var(--text-2);cursor:pointer}
+.lk{background:none;border:none;color:var(--primary);font-size:.95rem;font-weight:600;cursor:pointer;padding:.3rem 0;min-height:44px;font-family:inherit;text-decoration:underline;text-underline-offset:3px;display:inline-flex;align-items:center;gap:.35rem}
+.lk.d{color:var(--danger)}
+/* ---- Pickers (list buttons / tiles / chips) ---- */
+.lb{display:block;width:100%;padding:.9rem 1rem;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-md);font-size:1rem;font-family:inherit;color:var(--text-2);font-weight:600;cursor:pointer;min-height:50px;margin-bottom:.5rem;text-align:left}
+.lb[aria-pressed="true"]{background:linear-gradient(180deg,rgba(45,212,191,.18),rgba(45,212,191,.10));border-color:var(--primary);color:var(--primary-hi);box-shadow:inset 0 1px 0 rgba(94,234,212,.25),0 2px 8px rgba(0,0,0,.3)}
+.lb.tile[aria-pressed="true"]{background:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235eead4' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E") no-repeat right 10px top 10px / 14px 14px,linear-gradient(180deg,rgba(45,212,191,.18),rgba(45,212,191,.10))}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.grid-2 .lb,.grid-2 .bb{margin-bottom:0}
+#dayB>:last-child{grid-column:1/-1}
+.ic-chip{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:34px;height:34px;border-radius:10px;background:var(--primary-dim);color:var(--primary)}
+.ic-chip.sm{width:28px;height:28px;border-radius:8px}
+.lb[aria-pressed="true"] .ic-chip{background:var(--primary);color:var(--primary-ink)}
+.tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:.45rem;min-height:84px;padding:.85rem .9rem}
+.tile .t{font-weight:700;color:inherit}
+.tile-sub{font-size:.8rem;color:var(--muted);font-weight:500}
+#dayB .tile{min-height:60px;gap:.1rem;padding:.65rem .95rem}
+#dayB .tile .t{font-size:1.02rem}
+#dayB>:last-child.tile{flex-direction:row;align-items:baseline;justify-content:flex-start;gap:.6rem;min-height:56px}
+.lb[aria-pressed="true"] .tile-sub{color:var(--primary)}
+.tile-wrap{display:flex;gap:.4rem;min-width:0}
+.tile-wrap .lb{flex:1;min-width:0;margin-bottom:0}
+.tile-wrap .x{flex:0 0 44px;width:44px;height:auto;align-self:stretch;border-radius:var(--r-md);color:var(--danger);background:var(--surface)}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:.5rem}
+.chips-3{grid-template-columns:repeat(3,1fr)}
+.chips .lb{margin-bottom:0;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:700;min-height:52px;padding:.5rem;font-variant-numeric:tabular-nums}
+.chips .lb[aria-pressed="true"]{background:linear-gradient(165deg,var(--primary-hi),var(--primary));border-color:transparent;color:var(--primary-ink);font-weight:800;box-shadow:0 2px 10px rgba(45,212,191,.3)}
+#detFields{padding:1rem 1.05rem}
+#detFields .flabel{margin:.85rem 0 .35rem}
+#detFields>label.flabel:first-child{margin-top:.1rem}
+#vDet #hL{margin:1rem 0 .45rem}
+#svBtn{min-height:58px;font-size:1.1rem;margin-top:.9rem}
+/* ---- Inputs ---- */
+input,textarea{display:block;width:100%;padding:.85rem;background:var(--surface-2);color:var(--text);border:1.5px solid var(--border);border-radius:var(--r-md);font-size:1rem;font-family:inherit;margin-bottom:.55rem}
+textarea{resize:vertical;min-height:80px}
+input:focus,textarea:focus{border-color:var(--primary)}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.9}
+/* ---- Cards ---- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem 1.15rem;margin-bottom:.75rem;box-shadow:var(--shadow-card),inset 0 1px 0 var(--hairline)}
+.card>h3:first-child{margin-top:.15rem}
+.card-warn{border-color:var(--danger-bd)}
+.card-warn>h3:first-child{color:var(--danger)}
+/* ---- Dashboard ---- */
+.wknav{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:.9rem 0 .7rem}
+.wknav #wkLbl{flex:1;text-align:center;font-weight:700;font-size:1.02rem;color:var(--text);margin:0;line-height:1.35}
+.hero-card{position:relative;overflow:hidden;display:flex;align-items:center;gap:1.25rem;padding:1.25rem 1.3rem;background:linear-gradient(175deg,var(--surface-2) 0%,var(--surface) 72%);border:1px solid var(--border-strong);border-radius:var(--r-xl);box-shadow:var(--shadow-card),inset 0 1px 0 var(--hairline);margin-bottom:.6rem}
+.hero-card::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 18% 0%,rgba(45,212,191,.13),transparent 55%)}
+.hero-card.over::before{background:radial-gradient(120% 90% at 18% 0%,rgba(167,139,250,.14),transparent 55%)}
+.ring-wrap{position:relative;flex:0 0 auto;width:116px;height:116px}
+.ring{width:116px;height:116px;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.09);stroke-width:9}
+.ring-fg{fill:none;stroke:url(#gradRing);stroke-width:9;stroke-linecap:round;stroke-dasharray:339.292;stroke-dashoffset:339.292;filter:drop-shadow(0 0 5px rgba(45,212,191,.3))}
+.hero-card.over .ring-fg{stroke:url(#gradRingV);filter:drop-shadow(0 0 5px rgba(167,139,250,.3))}
+.ring-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.95rem;color:var(--primary-hi);font-variant-numeric:tabular-nums}
+.hero-card.over .ring-pct{color:var(--violet)}
+.hero-txt{min-width:0;padding-left:1.15rem;border-left:1px solid var(--hairline)}
+.hero-num{margin:0;line-height:1;display:flex;align-items:baseline;gap:.2rem}
+.hero-num #bigClaimed{font-size:var(--fs-hero);font-weight:800;letter-spacing:-.035em;color:var(--text);font-variant-numeric:tabular-nums}
+.hero-unit{font-size:1.5rem;font-weight:700;color:var(--text-2)}
+.hero-sub{color:var(--muted);margin:.35rem 0 0;font-size:var(--fs-sm);font-weight:500}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;margin:.6rem 0}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:.75rem .85rem;box-shadow:inset 0 1px 0 var(--hairline)}
+.stat .k{font-size:var(--fs-xs);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:.4rem 0 .15rem}
+.stat .v{font-size:var(--fs-lg);font-weight:800;color:var(--text);margin:0;font-variant-numeric:tabular-nums}
+.stat.c-p .ic{color:var(--primary)}
+.stat.c-g .ic{color:var(--ok)}
+.stat.c-v .ic{color:var(--violet)}
+.stat.c-o .ic{color:var(--amber)}
+.stat.c-d .ic{color:var(--danger)}
+.cnt{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;padding:0 .55rem;border-radius:var(--r-pill);background:var(--surface-2);border:1px solid var(--border);color:var(--primary-hi);font-size:.8rem;font-weight:700;vertical-align:.12em}
+.cnt:empty{display:none}
+/* ---- Entry cards ---- */
+#eList{display:grid;grid-template-columns:1fr;gap:.65rem;margin-bottom:.75rem}
+.ec{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:.85rem .95rem;box-shadow:var(--shadow-card),inset 0 1px 0 var(--hairline)}
+.ec p{margin:0 0 .15rem;color:var(--text)}
+.ec-top{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.25rem}
+.ec .day{font-size:var(--fs-sm);font-weight:700;color:var(--text-2)}
+.ec .day .date{color:var(--muted);font-weight:600}
+.ec .hrs{background:var(--primary-dim);color:var(--primary-hi);font-weight:800;padding:.15rem .65rem;border-radius:var(--r-pill);font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+.ec .task{font-weight:700;font-size:var(--fs-md)}
+.ec .m{font-size:.85rem;color:var(--muted);margin-bottom:0}
+.ec-actions{display:flex;justify-content:flex-end;gap:.75rem;margin-top:.4rem}
+.ec-actions .ib{position:relative;width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;color:var(--text-2);cursor:pointer;font-family:inherit;padding:0}
+.ec-actions .ib::before{content:'';position:absolute;inset:-6px}
+.ec-actions .ib.d{color:var(--danger)}
+.empty{text-align:center;padding:1.9rem 1rem;border:1.5px dashed var(--border);border-radius:var(--r-lg);display:flex;flex-direction:column;align-items:center;gap:.3rem;color:var(--muted)}
+.empty .ic{opacity:.85;margin-bottom:.2rem}
+.empty-t{color:var(--text-2);font-weight:700;margin:0}
+.empty-s{font-size:var(--fs-sm);color:var(--muted);margin:0}
+/* ---- Step indicator ---- */
+.steps{display:flex;align-items:flex-start;gap:.5rem;margin:1.2rem 0 .2rem}
+.stepc{display:flex;flex-direction:column;align-items:center;gap:.3rem;flex:0 0 auto}
+.step{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;background:var(--surface);border:1.5px solid var(--border);color:var(--muted)}
+.step.on{background:linear-gradient(165deg,var(--primary-hi),var(--primary));border-color:transparent;color:var(--primary-ink);font-weight:800;box-shadow:0 0 0 4px var(--primary-dim),0 0 10px rgba(45,212,191,.3)}
+.step.done{background:var(--primary-dim);border-color:var(--primary);color:var(--primary-hi)}
+.steplbl{font-size:var(--fs-xs);color:var(--muted);font-weight:600}
+.stepc.on .steplbl{color:var(--primary-hi)}
+.stepc.done .steplbl{color:var(--text-2)}
+.bar{flex:1;height:2px;border-radius:1px;background:var(--border);margin-top:15px}
+.bar.fill{background:linear-gradient(90deg,var(--primary),var(--primary-hi))}
+/* ---- Help ---- */
+details.card{padding:0;overflow:hidden}
+#vHelp details.card{margin-bottom:.5rem}
+summary{list-style:none;display:flex;align-items:center;gap:.65rem;padding:.75rem .95rem;cursor:pointer;min-height:50px}
+summary::-webkit-details-marker{display:none}
+summary h3{margin:0;color:var(--text);font-size:1rem;letter-spacing:0;flex:1}
+summary::after{content:'';flex:0 0 auto;width:9px;height:9px;border-right:2px solid var(--primary);border-bottom:2px solid var(--primary);transform:rotate(45deg);margin-right:.2rem}
+details[open] summary::after{transform:rotate(225deg);margin-top:.3rem}
+details[open] summary{border-bottom:1px solid var(--border)}
+.dc{padding:.6rem 1rem .85rem}
+#vSettings .card>p{font-size:.875rem;line-height:1.55;margin-bottom:.6rem}
+#vSettings .chips{margin-bottom:.35rem}
+#vSettings .card{margin-bottom:.85rem}
+/* ---- Toast / undo banner ---- */
+.toast{position:fixed;left:50%;bottom:calc(1rem + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(12px);width:min(560px,calc(100% - 2rem));background:var(--surface-2);border:1px solid var(--primary);color:var(--text);padding:.8rem 1rem;border-radius:var(--r-md);font-weight:600;font-size:.95rem;z-index:100;opacity:0;pointer-events:none;display:flex;align-items:center;justify-content:space-between;gap:.75rem;box-shadow:var(--shadow-card)}
+.toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+.toast .undo{background:var(--primary-dim);border:1.5px solid var(--primary);color:var(--primary-hi);font-weight:700;font-size:.9rem;padding:.45rem 1rem;border-radius:var(--r-pill);min-height:44px;cursor:pointer;font-family:inherit}
+/* ---- Motion (opt-in only) ---- */
+@media (prefers-reduced-motion:no-preference){
+.ring-fg{transition:stroke-dashoffset .9s var(--ease-out)}
+section:not([hidden]){animation:in .24s var(--ease-out)}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+.lb,.bb,.icon-btn,.lk,.toast .undo,.ec-actions .ib,.kofi{transition:box-shadow .18s ease,border-color .18s ease,background-color .18s ease,color .18s ease,transform .12s ease}
+.ic-chip{transition:background-color .18s ease,color .18s ease}
+.lb:active,.bb:active,.icon-btn:active{transform:scale(.97)}
+.ec-actions .ib:active{transform:scale(.94)}
+.step.on{animation:stepIn .28s var(--ease-out)}
+@keyframes stepIn{from{transform:scale(.8)}}
+.toast{transition:opacity .26s var(--ease-out),transform .26s var(--ease-out)}
+summary::after{transition:transform .2s ease}
+}
+/* ---- Responsive ---- */
+@media (min-width:480px){
+.stats{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+}
+@media (min-width:700px){
+#eList{grid-template-columns:1fr 1fr;gap:.75rem}
+#dayB{grid-template-columns:repeat(3,1fr)}
+#taskB{grid-template-columns:repeat(3,1fr)}
+.hero-card{padding:1.5rem 1.6rem}
+.ring-wrap,.ring{width:128px;height:128px}
+}
+@media (min-width:900px){
+.w{max-width:1100px}
+.w>section{max-width:640px;margin:0 auto}
+.w>section#vList{max-width:none;display:grid;grid-template-columns:410px minmax(0,1fr);gap:2.5rem;align-items:start}
+#vList .dash{position:sticky;top:92px}
+#vList .entcol h2{margin-top:1.1rem}
+}
 </style>
 </head>
 <body>
-<header><h1>Timesheet</h1><a href="https://ko-fi.com/st94410093" target="_blank" rel="noopener" style="display:inline-block;background:var(--border);color:var(--link);font-size:.8rem;text-decoration:none;font-weight:600;padding:.35rem .75rem;border-radius:20px" aria-label="Support this app on Ko-fi">☕ Support</a></header>
-<div class="w">
+<svg hidden xmlns="http://www.w3.org/2000/svg">
+<defs>
+<symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-chev-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6l-6 6 6 6"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6l6 6-6 6"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19.5 8.5a2.12 2.12 0 0 0-3-3L5 17l-1 3z"/><path d="M13.5 6.5l3 3"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6.5h8M16.4 6.5H20"/><circle cx="14.2" cy="6.5" r="2.2"/><path d="M4 12h2.6M11 12h9"/><circle cx="8.8" cy="12" r="2.2"/><path d="M4 17.5h8M16.4 17.5H20"/><circle cx="14.2" cy="17.5" r="2.2"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1.1.9-1.1 1.7v.3"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10M7.5 9.5L12 14l4.5-4.5"/><path d="M5 19h14"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14V4M7.5 8.5L12 4l4.5 4.5"/><path d="M5 19h14"/></symbol>
+<symbol id="i-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="17" height="12" rx="2.5"/><path d="M9 7.5V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1.5"/><path d="M3.5 12.5h17"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M15.8 15.8L21 21"/></symbol>
+<symbol id="i-cap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9.5L12 5l9.5 4.5L12 14z"/><path d="M6.5 11.8V16c0 1 2.5 2.5 5.5 2.5s5.5-1.5 5.5-2.5v-4.2"/><path d="M21.5 9.5V15"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></symbol>
+<symbol id="i-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-6 4 12 2.5-6H21"/></symbol>
+<symbol id="i-rewind" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M18 3.2v3.4h-3.4"/><path d="M12 7.5V12l3 1.8"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.5v-8a1 1 0 0 1 1-1h8L21 12l-8.5 8.5z"/><circle cx="8" cy="8" r="1.4"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></symbol>
+</defs>
+</svg>
+<header><h1><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="17" height="17"><use href="#i-clock"/></svg></span>Timesheet</h1><a class="kofi" href="https://ko-fi.com/st94410093" target="_blank" rel="noopener" aria-label="Support this app on Ko-fi"><svg class="ic" aria-hidden="true" width="14" height="14"><use href="#i-heart"/></svg>Support</a></header>
+<main class="w">
 <div id="live" role="status" aria-live="polite" class="sr"></div>
 
 <!-- LIST -->
 
 <section id="vList">
 
-<h2>Week</h2>
-<div style="display:flex;gap:.5rem;margin-bottom:.75rem">
-<button class="bb" style="background:var(--surface);color:var(--text)" onclick="prevWeek()" aria-label="Previous week">◀ Back</button>
-<button class="bb" style="background:var(--surface);color:var(--text)" onclick="nextWeek()" aria-label="Next week">Next ▶</button>
+<div class="dash">
+<div class="wknav">
+<button class="icon-btn" onclick="prevWeek()" aria-label="Previous week"><svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-chev-l"/></svg></button>
+<h2 id="wkLbl"></h2>
+<button class="icon-btn" onclick="nextWeek()" aria-label="Next week"><svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-chev-r"/></svg></button>
 </div>
-<p id="wkLbl" style="font-size:1.05rem;font-weight:600;color:var(--text)" aria-live="polite"></p>
 
-<button class="bb" style="background:var(--accent);color:#fff" onclick="startAdd()">+ Add Entry</button>
+<div class="hero-card" id="heroCard" role="text" aria-label="">
+<div class="ring-wrap" aria-hidden="true">
+<svg class="ring" viewBox="0 0 120 120">
+<defs>
+<linearGradient id="gradRing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5eead4"/><stop offset="1" stop-color="#2dd4bf"/></linearGradient>
+<linearGradient id="gradRingV" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c4b5fd"/><stop offset="1" stop-color="#a78bfa"/></linearGradient>
+</defs>
+<circle class="ring-bg" cx="60" cy="60" r="54"/>
+<circle class="ring-fg" id="ringFg" cx="60" cy="60" r="54"/>
+</svg>
+<span class="ring-pct" id="ringPct"></span>
+</div>
+<div class="hero-txt">
+<p class="eyebrow">This week</p>
+<p class="hero-num"><span id="bigClaimed">0</span><span class="hero-unit">h</span></p>
+<p class="hero-sub">claimed of <span id="bigMax">7</span>h max</p>
+</div>
+</div>
 
-<h2>Entries</h2>
+<div class="stats" id="statGrid"></div>
+<p id="cumm" class="footnote"></p>
+
+<button class="bb bp hero-add" id="addBtn" onclick="startAdd()"><svg class="ic" aria-hidden="true" width="22" height="22"><use href="#i-plus"/></svg>Add Entry</button>
+</div>
+
+<div class="entcol">
+<h2 id="entH" tabindex="-1">Entries <span class="cnt" id="eCnt"></span></h2>
 <div id="eList"></div>
 
-<h2>Summary</h2>
-<p id="summ"></p>
-<p id="cumm" style="font-size:.9rem;color:var(--muted);margin:0 0 .75rem"></p>
+<hr class="sep">
+
+<button class="bb bs pt" id="expBtn" onclick="doExport()"><svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-download"/></svg>Export Timesheet</button>
+<button class="lk d" id="clrBtn" onclick="clrWeek()" aria-label="Clear all entries this week" style="margin-bottom:1rem"><svg class="ic" aria-hidden="true" width="16" height="16"><use href="#i-trash"/></svg>Clear all entries</button>
 
 <hr class="sep">
 
-<button class="bb" style="background:var(--go);color:#000" id="expBtn" onclick="doExport()">Export Timesheet</button>
-<button class="lk d" id="clrBtn" onclick="clrWeek()" aria-label="Clear all entries this week" style="margin-bottom:1rem">Clear all entries</button>
-
-<hr class="sep">
-
-<button class="bb" style="background:var(--surface);color:#ddd" onclick="go('settings')">Settings</button>
-<button class="bb" style="background:var(--surface);color:#ddd" onclick="go('help')">How to Use This</button>
+<div class="grid-2">
+<button class="bb bs" onclick="go('settings');fc('setH')"><svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-gear"/></svg>Settings</button>
+<button class="bb bs" onclick="go('help');fc('helpH')"><svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-book"/></svg>How to Use This</button>
+</div>
+</div>
 
 </section>
 
 <!-- SETTINGS -->
 
 <section id="vSettings" hidden>
-<h2>Settings</h2>
+<h2 id="setH" tabindex="-1">Settings</h2>
+<div class="card">
 <h3>Maximum hours per week</h3>
 <p style="margin-top:0">This caps your claimed hours. Anything above shows as time owing.</p>
-<div id="mxBtns"></div>
-<label for="mxC"><h3>Or type a custom max</h3></label>
-<input id="mxC" type="number" min="1" max="40" step="0.5" aria-label="Custom maximum hours">
+<div id="mxBtns" class="chips chips-3"></div>
+<label class="flabel" for="mxC">Or type a custom max</label>
+<input id="mxC" type="number" min="1" max="40" step="0.5">
+</div>
+<div class="card">
 <h3>Time off allowance</h3>
 <p style="margin-top:0">Set your total available time off for the year (in hours). When you log entries with "Time Off" as the task, the app tracks how much you've used and how much remains.</p>
-<div id="toaBtns"></div>
-<label for="toaC"><h3>Or type a custom allowance</h3></label>
-<input id="toaC" type="number" min="0" max="500" step="1" aria-label="Custom time off allowance in hours">
+<div id="toaBtns" class="chips chips-3"></div>
+<label class="flabel" for="toaC">Or type a custom allowance</label>
+<input id="toaC" type="number" min="0" max="500" step="1">
+</div>
+<div class="card">
 <h3>Sick leave allowance</h3>
 <p style="margin-top:0">Set your total available sick leave for the year (in hours). When you log entries with "Sick Leave" as the task, the app tracks how much you've used. Set to 0 to disable tracking but still see a total.</p>
-<div id="slaBtns"></div>
-<label for="slaC"><h3>Or type a custom allowance</h3></label>
-<input id="slaC" type="number" min="0" max="500" step="1" aria-label="Custom sick leave allowance in hours">
-<hr class="sep">
+<div id="slaBtns" class="chips chips-3"></div>
+<label class="flabel" for="slaC">Or type a custom allowance</label>
+<input id="slaC" type="number" min="0" max="500" step="1">
+</div>
+<div class="card">
 <h3>Backup your data</h3>
 <p style="margin-top:0">Save all your entries, custom tasks and settings to a file. Use this before clearing your browser data or switching phones.</p>
-<button class="bb" style="background:var(--go);color:#000" onclick="doBackup()">Download Backup</button>
+<button class="bb bs pt" onclick="doBackup()"><svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-download"/></svg>Download Backup</button>
+</div>
+<div class="card card-warn">
 <h3>Restore from backup</h3>
 <p style="margin-top:0">Load a backup file to restore your data. This replaces your current entries.</p>
-<label class="bb" style="background:var(--surface);color:var(--link);cursor:pointer;text-align:center" tabindex="0" role="button" aria-label="Choose backup file to restore">Choose Backup File<input type="file" id="restoreFile" accept=".json" hidden onchange="doRestore(this)"></label>
-<button class="bb" style="background:var(--surface);color:var(--link)" onclick="go('list')">← Back to Timesheet</button>
+<label class="bb bs dg" style="cursor:pointer" tabindex="0" role="button" aria-label="Choose backup file to restore" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-upload"/></svg>Choose Backup File<input type="file" id="restoreFile" accept=".json" hidden onchange="doRestore(this)"></label>
+</div>
+<button class="bb bs" onclick="go('list');fc('addBtn')"><svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-chev-l"/></svg>Back to Timesheet</button>
 </section>
 
 <!-- HELP -->
 
 <section id="vHelp" hidden>
-<h2>How to Use This</h2>
-<h3>Adding entries during the week</h3>
+<h2 id="helpH" tabindex="-1">How to Use This</h2>
+<details class="card"><summary><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="15" height="15"><use href="#i-plus"/></svg></span><h3>Adding entries during the week</h3></summary><div class="dc">
 <p>Tap "Add Entry" on the main screen. You'll go through 3 steps: pick a day, pick or type a task type, then fill in the details and hours. Tap "Save Entry" when you're done. You can add as many entries as you need throughout the week.</p>
-<h3>Editing or deleting</h3>
-<p>Each entry has Edit and Delete links underneath it. Edit takes you back to the details step so you can change anything. Delete removes the entry but gives you 5 seconds to tap Undo and get it back. The same applies when you clear all entries for a week.</p>
-<h3>The summary</h3>
+</div></details>
+<details class="card"><summary><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="15" height="15"><use href="#i-edit"/></svg></span><h3>Editing or deleting</h3></summary><div class="dc">
+<p>Each entry has Edit and Delete buttons underneath it. Edit takes you back to the details step so you can change anything. Delete removes the entry but gives you 5 seconds to tap Undo and get it back. The same applies when you clear all entries for a week.</p>
+</div></details>
+<details class="card"><summary><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="15" height="15"><use href="#i-clock"/></svg></span><h3>The summary</h3></summary><div class="dc">
 <p>The summary shows your total hours, how many are claimed (capped at your max — set this in Settings), and any time owing for the week.</p>
-<h3>Custom tasks</h3>
+</div></details>
+<details class="card"><summary><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="15" height="15"><use href="#i-tag"/></svg></span><h3>Custom tasks</h3></summary><div class="dc">
 <p>On the task step, pick a built-in type or type your own. Custom tasks are remembered and appear as buttons next time. To remove one you no longer need, tap the ✕ next to it on the task step — this only removes it from the list, any existing entries using it stay put.</p>
-<h3>Exporting your timesheet</h3>
+</div></details>
+<details class="card"><summary><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="15" height="15"><use href="#i-download"/></svg></span><h3>Exporting your timesheet</h3></summary><div class="dc">
 <p>At the end of the week, tap "Export Timesheet." The export is a proper Excel file (.xlsx) with headers, column widths, borders and a shaded totals row — so it opens looking tidy in Excel or Numbers without any manual formatting.</p>
 <p>The iOS share sheet opens. Tap <strong>Save to Files</strong>, pick a location like On My iPhone or iCloud Drive, and tap Save.</p>
 <p>Then open the <strong>Files</strong> app, find the file where you saved it, and tap it. Tap the Share button (the square with the arrow pointing up), and choose Copy to Excel or Copy to Numbers. The file opens straight into the app ready to view, edit, email or send on.</p>
 <p>If you just want to email it to someone, you can also tap <strong>Mail</strong> directly from the first share sheet — a new email opens with the file already attached.</p>
-<h3>On a computer</h3>
+</div></details>
+<details class="card"><summary><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="15" height="15"><use href="#i-download"/></svg></span><h3>On a computer</h3></summary><div class="dc">
 <p>On a desktop browser the export downloads an .xlsx file to your Downloads folder. Double-tap it to open in Excel or Numbers.</p>
-<h3>Time off and sick leave</h3>
+</div></details>
+<details class="card"><summary><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="15" height="15"><use href="#i-sun"/></svg></span><h3>Time off and sick leave</h3></summary><div class="dc">
 <p>To log time off or sick leave, choose "Time Off" or "Sick Leave" as the task type when adding an entry. In Settings you can set an allowance for each (in hours). The app tracks how much you've used across all weeks and shows how much remains on the main screen. If you don't set an allowance, you'll still see a running total of hours taken.</p>
-<h3>Hours owing</h3>
+</div></details>
+<details class="card"><summary><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="15" height="15"><use href="#i-rewind"/></svg></span><h3>Hours owing</h3></summary><div class="dc">
 <p>If you work more than your weekly max, the extra hours are "owing." The app tracks this across all your saved weeks and shows the cumulative total on the main screen. To use your owed hours, add an entry with "Hours Reclaimed" as the task type. The app subtracts reclaimed hours from your total and shows both the earned and used amounts.</p>
-<h3>Backup and restore</h3>
+</div></details>
+<details class="card"><summary><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="15" height="15"><use href="#i-upload"/></svg></span><h3>Backup and restore</h3></summary><div class="dc">
 <p>In Settings, tap "Download Backup" to save all your entries, custom tasks and settings to a file. You can save it to iCloud Drive, email it to yourself, or keep it on your phone. To restore from a backup (e.g. on a new phone), tap "Choose Backup File" and pick the file. This replaces your current data.</p>
-<h3>Settings</h3>
+</div></details>
+<details class="card"><summary><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="15" height="15"><use href="#i-gear"/></svg></span><h3>Settings</h3></summary><div class="dc">
 <p>In Settings you can change your maximum weekly hours (default 7), set your time off and sick leave allowances, and back up or restore your data.</p>
-<button class="bb" style="background:var(--surface);color:var(--link)" onclick="go('list')">← Back to Timesheet</button>
+</div></details>
+<button class="bb bs" onclick="go('list');fc('addBtn')"><svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-chev-l"/></svg>Back to Timesheet</button>
 </section>
 
 <!-- STEP 1: DAY -->
 
 <section id="vDay" hidden>
-<h2>Step 1 of 3 — Pick a Day</h2>
-<div id="dayB"></div>
-<button class="lk" onclick="go('list')" style="margin-top:.5rem">Cancel</button>
+<div class="steps" aria-hidden="true">
+<span class="stepc on"><span class="step on">1</span><span class="steplbl">Day</span></span>
+<span class="bar"></span>
+<span class="stepc"><span class="step">2</span><span class="steplbl">Task</span></span>
+<span class="bar"></span>
+<span class="stepc"><span class="step">3</span><span class="steplbl">Details</span></span>
+</div>
+<h2 id="dayH" tabindex="-1">Step 1 of 3 — Pick a Day</h2>
+<div id="dayB" class="grid-2"></div>
+<button class="lk" onclick="go('list');fc('addBtn')" style="margin-top:.5rem">Cancel</button>
 </section>
 
 <!-- STEP 2: TASK -->
 
 <section id="vTask" hidden>
-<h2 id="tH">Step 2 of 3 — Pick Task</h2>
-<div id="taskB"></div>
-<label for="ctI"><h3>Or type a custom task</h3></label>
-<input id="ctI" type="text" placeholder="e.g. Mentoring, Meeting" aria-label="Custom task name">
-<button class="bb" style="background:var(--accent);color:#fff" onclick="confirmTask()">Next</button>
+<div class="steps" aria-hidden="true">
+<span class="stepc done"><span class="step done">✓</span><span class="steplbl">Day</span></span>
+<span class="bar fill"></span>
+<span class="stepc on"><span class="step on">2</span><span class="steplbl">Task</span></span>
+<span class="bar"></span>
+<span class="stepc"><span class="step">3</span><span class="steplbl">Details</span></span>
+</div>
+<h2 id="tH" tabindex="-1">Step 2 of 3 — Pick Task</h2>
+<div id="taskB" class="grid-2"></div>
+<label class="flabel" for="ctI">Or type a custom task</label>
+<input id="ctI" type="text" placeholder="e.g. Mentoring, Meeting">
+<button class="bb bp" onclick="confirmTask()">Next<svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-chev-r"/></svg></button>
 <button class="lk" onclick="go('day')">Back to days</button>
 </section>
 
 <!-- STEP 3: DETAILS -->
 
 <section id="vDet" hidden>
-<h2 id="dH">Step 3 of 3</h2>
-<div id="detFields">
-<label for="fP"><h3>Participant Code (optional)</h3></label>
+<div class="steps" aria-hidden="true">
+<span class="stepc done"><span class="step done">✓</span><span class="steplbl">Day</span></span>
+<span class="bar fill"></span>
+<span class="stepc done"><span class="step done">✓</span><span class="steplbl">Task</span></span>
+<span class="bar fill"></span>
+<span class="stepc on"><span class="step on">3</span><span class="steplbl">Details</span></span>
+</div>
+<h2 id="dH" tabindex="-1">Step 3 of 3</h2>
+<div id="detFields" class="card">
+<label class="flabel" for="fP">Participant Code (optional)</label>
 <input id="fP" type="text" placeholder="e.g. PW, MK, 1633">
-<label for="fD"><h3>Task Details</h3></label>
+<label class="flabel" for="fD">Task Details</label>
 <textarea id="fD" placeholder="What did you work on?" rows="3"></textarea>
-<label for="fA"><h3>Admin Details (optional)</h3></label>
+<label class="flabel" for="fA">Admin Details (optional)</label>
 <input id="fA" type="text" placeholder="Extra notes">
 </div>
 <h3 id="hL">Hours</h3>
-<div role="group" aria-labelledby="hL" id="hrB"></div>
-<label for="fH"><h3>Or type hours</h3></label>
+<div role="group" aria-labelledby="hL" id="hrB" class="chips"></div>
+<label class="flabel" for="fH">Or type hours</label>
 <input id="fH" type="number" min="0.25" max="8" step="0.25" placeholder="Custom hours">
-<button class="bb" style="background:var(--go);color:#000" id="svBtn" onclick="submitEntry()">Save Entry</button>
+<button class="bb bp" id="svBtn" onclick="submitEntry()">Save Entry</button>
 <button class="lk" onclick="go('task')">Back to tasks</button>
 </section>
 
-</div>
+</main>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -209,7 +472,9 @@ function se(){sv(wk(),ents)}
 
 function $(id){return document.getElementById(id)}
 function say(m){const e=$('live');e.textContent='';setTimeout(()=>e.textContent=m,50)}
-function flash(m){clearTimeout(undoTimer);const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+function fc(id){setTimeout(()=>{const el=$(id);if(el)el.focus()},100)}
+function fcSay(id,m){fc(id);setTimeout(()=>say(m),400)}
+function flash(m){clearTimeout(undoTimer);const t=$('toast');t.textContent=m;t.classList.add('show');undoTimer=setTimeout(()=>t.classList.remove('show'),2200)}
 function h(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 function go(n){
@@ -234,7 +499,8 @@ function rL(){
   const tot=ents.reduce((a,e)=>a+e.time,0);
   const ou=ents.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
   const w=tot-ou,cl=Math.min(w,mx),ow=w>mx?w-mx:0;
-  $('summ').textContent=`${tot} hours logged. ${cl} claimed out of ${mx} max. ${ow>0?ow+' hours owing.':'No time owing.'} ${ents.length} ${ents.length===1?'entry':'entries'}.`;
+  const hrw=n=>n+' '+(n===1?'hour':'hours');
+  $('heroCard').setAttribute('aria-label',`This week. ${cl} of ${hrw(mx)} claimed. ${mx>0?Math.round(cl/mx*100):0} percent of your maximum.${ow>0?' '+hrw(ow)+' over your maximum this week.':''}`);
   const weeks=allWeeks();
   let cumOw=0,cumRec=0,cumOff=0,cumSick=0;
   weeks.forEach(we=>{
@@ -253,36 +519,49 @@ function rL(){
   if(sla>0)cumText+=`Sick leave: ${cumSick} of ${sla} hours used. ${Math.max(0,sla-cumSick)} remaining.`;
   else if(cumSick>0)cumText+=`${cumSick} hours sick leave taken.`;
   $('cumm').textContent=cumText;$('cumm').hidden=!cumText;
+  $('bigClaimed').textContent=cl;$('bigMax').textContent=mx;
+  const pct=mx>0?Math.min(cl/mx,1):0;
+  $('ringFg').style.strokeDashoffset=(339.292*(1-pct)).toFixed(2);
+  $('ringFg').style.opacity=pct>0?1:0;
+  $('ringPct').textContent=mx>0?Math.round(cl/mx*100)+'%':'';
+  $('heroCard').classList.toggle('over',ow>0);
+  $('eCnt').textContent=ents.length||'';
+  const stat=(c,ic,k,v,sp)=>`<div class="stat ${c}" role="text" aria-label="${sp}"><svg class="ic" aria-hidden="true" width="18" height="18"><use href="#${ic}"/></svg><p class="k">${k}</p><p class="v">${v}</p></div>`;
+  let tiles=stat('c-p','i-clock','Logged',tot+'h',`Logged, ${hrw(tot)}`)+stat('c-g','i-check','Claimed',cl+' / '+mx+'h',`Claimed, ${cl} of ${hrw(mx)}`)+stat('c-v','i-rewind','Owing',netOw+'h',`Owing, ${hrw(netOw)}`);
+  tiles+=toa>0?stat('c-o','i-sun','Time off',Math.max(0,toa-cumOff)+'h left',`Time off, ${hrw(Math.max(0,toa-cumOff))} left`):stat('c-o','i-sun','Time off',cumOff+'h used',`Time off, ${hrw(cumOff)} used`);
+  if(sla>0||cumSick>0)tiles+=sla>0?stat('c-d','i-pulse','Sick leave',cumSick+' / '+sla+'h',`Sick leave, ${cumSick} of ${hrw(sla)} used`):stat('c-d','i-pulse','Sick leave',cumSick+'h',`Sick leave, ${hrw(cumSick)}`);
+  $('statGrid').innerHTML=tiles;
   $('expBtn').hidden=!ents.length;$('clrBtn').hidden=!ents.length;
   const so=[...ents].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
-  if(!so.length){$('eList').innerHTML='<p style="color:#888;font-style:italic">No entries yet.</p>';return}
-  $('eList').innerHTML=so.map(e=>{const ri=ents.indexOf(e);return`<article class="ec" aria-label="${h(e.day)}, ${h(e.task)}, ${e.time} hours"><p style="font-weight:700">${h(e.day)} — ${e.time}h</p><p style="font-weight:600">${h(e.task)}${e.participant?' ('+h(e.participant)+')':''}</p><p class="m">${h(e.details)}${e.admin?' · '+h(e.admin):''}</p><button class="lk" onclick="edE(${ri})" aria-label="Edit ${h(e.day)} ${h(e.task)}">Edit</button> <button class="lk d" onclick="dlE(${ri})" style="margin-left:1.5rem" aria-label="Delete ${h(e.day)} ${h(e.task)}">Delete</button></article>`}).join('');
+  if(!so.length){$('eList').innerHTML='<div class="empty"><svg class="ic" aria-hidden="true" width="28" height="28"><use href="#i-clock"/></svg><p class="empty-t">No entries yet.</p><p class="empty-s">Add your first entry for this week.</p></div>';return}
+  $('eList').innerHTML=so.map(e=>{const ri=ents.indexOf(e);const hw=e.time===1?'hour':'hours';return`<article class="ec"><div class="ec-body" role="text" aria-label="${h(e.day)} ${dateFor(e.day)}. ${h(e.task)}${e.participant?' ('+h(e.participant)+')':''}. ${e.time} ${hw}.${e.details&&e.details!==e.task?' '+h(e.details)+'.':''}${e.admin?' '+h(e.admin)+'.':''}"><div class="ec-top"><p class="day">${h(e.day)} <span class="date">${dateFor(e.day)}</span></p><p class="hrs">${e.time}h</p></div><p class="task">${h(e.task)}${e.participant?' ('+h(e.participant)+')':''}</p><p class="m">${h(e.details)}${e.admin?' · '+h(e.admin):''}</p></div><div class="ec-actions"><button class="ib" onclick="edE(${ri})" aria-label="Edit ${h(e.day)} ${h(e.task)}, ${e.time} ${hw}"><svg class="ic" aria-hidden="true" width="17" height="17"><use href="#i-edit"/></svg></button><button class="ib d" onclick="dlE(${ri})" aria-label="Delete ${h(e.day)} ${h(e.task)}, ${e.time} ${hw}"><svg class="ic" aria-hidden="true" width="17" height="17"><use href="#i-trash"/></svg></button></div></article>`}).join('');
+
 }
 
 function prevWeek(){ws.setDate(ws.getDate()-7);ws=new Date(ws);sW();go('list');say('Moved to '+fR(ws))}
 function nextWeek(){ws.setDate(ws.getDate()+7);ws=new Date(ws);sW();go('list');say('Moved to '+fR(ws))}
 
-function startAdd(){sD='';sK='';eI=null;$('ctI').value='';$('fP').value='';$('fD').value='';$('fA').value='';$('fH').value='';sT();go('day');say('Step 1 of 3. Choose a day.')}
+function startAdd(){sD='';sK='';eI=null;$('ctI').value='';$('fP').value='';$('fD').value='';$('fA').value='';$('fH').value='';sT();go('day');fc('dayH')}
 
-function rD(){$('dayB').innerHTML=DAYS.map(d=>`<button class="lb" aria-pressed="${sD===d}" onclick="pD('${d}')">${d}</button>`).join('')}
-function pD(d){sD=d;sS();go('task');say(`${d}. Step 2 of 3. Choose a task type.`)}
+function rD(){$('dayB').innerHTML=DAYS.map(d=>`<button class="lb tile" aria-pressed="${sD===d}" onclick="pD('${d}')"><span class="t">${d}</span><span class="tile-sub">${dateFor(d)}</span></button>`).join('')}
+function pD(d){sD=d;sS();go('task');fc('tH')}
 
 let tList=[];
-function rT(){$('tH').textContent=`Step 2 of 3 — ${sD} — Pick Task`;tList=[...DT,...ct];$('taskB').innerHTML=tList.map((t,i)=>{const isCustom=i>=DT.length;if(isCustom){const ci=i-DT.length;return `<div style="display:flex;gap:.4rem;margin-bottom:.4rem"><button class="lb" style="flex:1;margin-bottom:0" aria-pressed="${sK===t}" onclick="pKi(${i})">${h(t)}</button><button class="lb" style="flex:0 0 auto;margin-bottom:0;padding:.9rem 1rem;color:var(--accent);font-weight:700" onclick="dlCt(${ci})" aria-label="Delete custom task ${h(t)}">✕</button></div>`}return `<button class="lb" aria-pressed="${sK===t}" onclick="pKi(${i})">${h(t)}</button>`}).join('');$('ctI').value=''}
-function pKi(i){pK(tList[i])}
-function pK(t){sK=t;$('ctI').value='';rT()}
-function dlCt(i){const name=ct[i];if(!confirm(`Delete custom task "${name}"?\n\n(This only removes it from the list. Existing entries using it stay put.)`))return;ct.splice(i,1);sv('ct',ct);if(sK===name)sK='';sDl();flash(`Deleted "${name}"`);say(`Deleted custom task ${name}`);rT()}
+function icon(t){return{'Admin':'i-briefcase','Research':'i-search','Training':'i-cap','Time Off':'i-sun','Sick Leave':'i-pulse','Hours Reclaimed':'i-rewind'}[t]||'i-tag'}
+function rT(){$('tH').textContent=`Step 2 of 3 — ${sD} — Pick Task`;tList=[...DT,...ct];const ic=t=>`<span class="ic-chip" aria-hidden="true"><svg class="ic" width="20" height="20"><use href="#${icon(t)}"/></svg></span>`;$('taskB').innerHTML=tList.map((t,i)=>{const isCustom=i>=DT.length;if(isCustom){const ci=i-DT.length;return `<div class="tile-wrap"><button class="lb tile" aria-pressed="${sK===t}" onclick="pKi(${i})">${ic(t)}<span class="t">${h(t)}</span></button><button class="icon-btn x" onclick="dlCt(${ci})" aria-label="Delete custom task ${h(t)}"><svg class="ic" aria-hidden="true" width="18" height="18"><use href="#i-x"/></svg></button></div>`}return `<button class="lb tile" aria-pressed="${sK===t}" onclick="pKi(${i})">${ic(t)}<span class="t">${h(t)}</span></button>`}).join('');$('ctI').value=''}
+function pKi(i){sK=tList[i];$('ctI').value='';sT();$('taskB').querySelectorAll('[aria-pressed]').forEach((b,j)=>b.setAttribute('aria-pressed',String(j===i)))}
+function dlCt(i){const name=ct[i];if(!confirm(`Delete custom task "${name}"?\n\n(This only removes it from the list. Existing entries using it stay put.)`))return;ct.splice(i,1);sv('ct',ct);if(sK===name)sK='';sDl();flash(`Deleted "${name}"`);rT();fcSay('tH',`Deleted custom task ${name}.`)}
 
-function confirmTask(){const c=$('ctI').value.trim(),task=sK||c;if(!task){flash('Pick or type a task');return}if(!sK&&c&&!DT.includes(c)&&!ct.includes(c)){ct.push(c);sv('ct',ct)}sK=task;sS();go('det');say(`${task}. Step 3 of 3. Add details and hours.`)}
+function confirmTask(){const c=$('ctI').value.trim(),task=sK||c;if(!task){flash('Pick or type a task');say('Pick or type a task first.');return}if(!sK&&c&&!DT.includes(c)&&!ct.includes(c)){ct.push(c);sv('ct',ct)}sK=task;sS();go('det');fc('dH')}
 
 let sH='';
 const QUICK_TASKS=['Hours Reclaimed','Sick Leave','Time Off'];
-function rDt(){const quick=QUICK_TASKS.includes(sK);$('dH').textContent=quick?`${sK} — ${sD}`:`Step 3 of 3 — ${sD}, ${sK}`;$('detFields').hidden=quick;$('svBtn').textContent=eI!==null?'Update Entry':'Save Entry';sH=$('fH').value;$('hrB').innerHTML=[.5,1,1.5,2,2.5,3,3.5,4].map(h=>`<button class="lb" aria-pressed="${sH===String(h)}" aria-label="${h} hours" onclick="pH(${h})">${h} hours</button>`).join('')}
-function pH(h){sH=String(h);$('fH').value=h;sT();rDt()}
+function rDt(){const quick=QUICK_TASKS.includes(sK);$('dH').textContent=quick?`${sK} — ${sD}`:`Step 3 of 3 — ${sD}, ${sK}`;$('detFields').hidden=quick;$('svBtn').textContent=eI!==null?'Update Entry':'Save Entry';sH=$('fH').value;const hLbl=h=>h===0.5?'Half an hour':(h%1?Math.floor(h)+' and a half hours':h+(h===1?' hour':' hours'));$('hrB').innerHTML=[.5,1,1.5,2,2.5,3,3.5,4].map(h=>`<button class="lb" aria-pressed="${sH===String(h)}" aria-label="${hLbl(h)}" onclick="pH(${h})">${h}</button>`).join('')}
+function pH(h){sH=String(h);$('fH').value=h;sT();$('hrB').querySelectorAll('[aria-pressed]').forEach(b=>b.setAttribute('aria-pressed',String(parseFloat(b.textContent)===h)))}
 
-function submitEntry(){const h=parseFloat($('fH').value),quick=QUICK_TASKS.includes(sK),det=quick?sK:$('fD').value.trim();if(!det||isNaN(h)||h<=0){flash(quick?'Pick the hours':'Add details and hours to save');say(quick?'Missing hours':'Missing details or hours');return}if(h>24){flash('Hours can’t exceed 24');say('Hours too high');return}const en={day:sD,task:sK,participant:$('fP').value.trim(),details:det,admin:$('fA').value.trim(),time:h};if(eI!==null){ents[eI]=en;flash('Entry updated');say(`Updated. ${en.day}, ${en.task}, ${en.time} hours.`)}else{ents.push(en);flash('Entry added');say(`Saved. ${en.day}, ${en.task}, ${en.time} hours.`)}se();sSv();eI=null;go('list')}
+function submitEntry(){const h=parseFloat($('fH').value),quick=QUICK_TASKS.includes(sK),det=quick?sK:$('fD').value.trim();if(!det||isNaN(h)||h<=0){flash(quick?'Pick the hours':'Add details and hours to save');say(quick?'Missing hours':'Missing details or hours');return}if(h>24){flash('Hours can’t exceed 24');say('Hours too high');return}const en={day:sD,task:sK,participant:$('fP').value.trim(),details:det,admin:$('fA').value.trim(),time:h};const hw=en.time===1?'hour':'hours';let msg;if(eI!==null){ents[eI]=en;flash('Entry updated');msg=`Entry updated. ${en.day}, ${en.task}, ${en.time} ${hw}.`}else{ents.push(en);flash('Entry added');msg=`Entry saved. ${en.day}, ${en.task}, ${en.time} ${hw}.`}se();sSv();eI=null;go('list');fcSay('entH',msg)}
 
-function edE(i){const e=ents[i];sD=e.day;sK=e.task;eI=i;$('fP').value=e.participant||'';$('fD').value=e.details||'';$('fA').value=e.admin||'';$('fH').value=e.time;sT();go('det');say(`Editing ${e.day} ${e.task}`)}
+function edE(i){const e=ents[i];sD=e.day;sK=e.task;eI=i;$('fP').value=e.participant||'';$('fD').value=e.details||'';$('fA').value=e.admin||'';$('fH').value=e.time;sT();go('det');fcSay('dH',`Editing ${e.day} ${e.task}.`)}
 function flashUndo(msg,undoFn){
   clearTimeout(undoTimer);
   const t=$('toast');t.innerHTML='';
@@ -293,8 +572,8 @@ function flashUndo(msg,undoFn){
   t.classList.add('show');
   undoTimer=setTimeout(()=>t.classList.remove('show'),5000);
 }
-function dlE(i){const e=ents[i];const backup=JSON.parse(JSON.stringify(ents));ents.splice(i,1);se();sDl();rL();say(`Deleted ${e.day} ${e.task}`);flashUndo('Deleted',()=>{ents=backup;se();sT();rL();say('Undo delete')})}
-function clrWeek(){if(!ents.length)return;if(!confirm(`Clear all ${ents.length} entries this week?`))return;const backup=JSON.parse(JSON.stringify(ents));ents=[];se();sDl();rL();say('All entries cleared');flashUndo('Cleared',()=>{ents=backup;se();sT();rL();say('Undo clear')})}
+function dlE(i){const e=ents[i];const backup=JSON.parse(JSON.stringify(ents));ents.splice(i,1);se();sDl();rL();fcSay('entH',`Entry deleted. ${e.day} ${e.task}. Undo available.`);flashUndo('Deleted',()=>{ents=backup;se();sT();rL();fcSay('entH','Entry restored.')})}
+function clrWeek(){if(!ents.length)return;if(!confirm(`Clear all ${ents.length} entries this week?`))return;const backup=JSON.parse(JSON.stringify(ents));ents=[];se();sDl();rL();fcSay('entH','All entries cleared. Undo available.');flashUndo('Cleared',()=>{ents=backup;se();sT();rL();fcSay('entH','Entries restored.')})}
 
 // CRC32 for zip
 const crc32=(()=>{const t=new Uint32Array(256);for(let i=0;i<256;i++){let c=i;for(let j=0;j<8;j++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;t[i]=c>>>0}return a=>{let c=0xffffffff;for(let i=0;i<a.length;i++)c=(c>>>8)^t[(c^a[i])&0xff];return (c^0xffffffff)>>>0}})();
@@ -417,13 +696,14 @@ function doExport(){
 }
 
 function rS(){
-  $('mxC').value=mx;$('mxBtns').innerHTML=[5,6,7,7.5,8,10].map(h=>`<button class="lb" aria-pressed="${mx===h}" aria-label="${h} hours per week" onclick="setMx(${h})">${h} hours</button>`).join('');
-  $('toaC').value=toa||'';$('toaBtns').innerHTML=[0,35,70,100,140,200].map(v=>`<button class="lb" aria-pressed="${toa===v}" aria-label="${v?v+' hours time off':'No time off tracking'}" onclick="setToa(${v})">${v?v+' hours':'Off'}</button>`).join('');
-  $('slaC').value=sla||'';$('slaBtns').innerHTML=[0,21,35,56,70].map(v=>`<button class="lb" aria-pressed="${sla===v}" aria-label="${v?v+' hours sick leave':'No sick leave tracking'}" onclick="setSla(${v})">${v?v+' hours':'Off'}</button>`).join('');
+  $('mxC').value=mx;$('mxBtns').innerHTML=[5,6,7,7.5,8,10].map(h=>`<button class="lb" aria-pressed="${mx===h}" aria-label="${h} hours per week" onclick="setMx(${h})">${h}h</button>`).join('');
+  $('toaC').value=toa||'';$('toaBtns').innerHTML=[0,35,70,100,140,200].map(v=>`<button class="lb" aria-pressed="${toa===v}" aria-label="${v?v+' hours time off':'No time off tracking'}" onclick="setToa(${v})">${v?v+'h':'Off'}</button>`).join('');
+  $('slaC').value=sla||'';$('slaBtns').innerHTML=[0,21,35,56,70].map(v=>`<button class="lb" aria-pressed="${sla===v}" aria-label="${v?v+' hours sick leave':'No sick leave tracking'}" onclick="setSla(${v})">${v?v+'h':'Off'}</button>`).join('');
 }
-function setMx(v){v=parseFloat(v);if(isNaN(v)||v<=0||v>80){flash('Enter 1–80 hours');return}mx=v;sv('mx',v);$('mxC').value=v;sT();say(`Max hours set to ${v}`);flash(`Max hours: ${v}`);rS()}
-function setToa(v){v=parseFloat(v);if(isNaN(v)||v<0||v>500){flash('Enter 0–500 hours');return}toa=v;sv('toa',v);$('toaC').value=v||'';sT();say(v?`Time off allowance set to ${v} hours`:'Time off tracking disabled');flash(v?`Time off: ${v} hours`:'Time off tracking off');rS()}
-function setSla(v){v=parseFloat(v);if(isNaN(v)||v<0||v>500){flash('Enter 0–500 hours');return}sla=v;sv('sla',v);$('slaC').value=v||'';sT();say(v?`Sick leave allowance set to ${v} hours`:'Sick leave tracking disabled');flash(v?`Sick leave: ${v} hours`:'Sick leave tracking off');rS()}
+function press(cid,v){$(cid).querySelectorAll('[aria-pressed]').forEach(b=>{const bv=b.textContent==='Off'?0:parseFloat(b.textContent);b.setAttribute('aria-pressed',String(bv===v))})}
+function setMx(v){v=parseFloat(v);if(isNaN(v)||v<=0||v>80){flash('Enter 1–80 hours');say('Enter between 1 and 80 hours.');return}mx=v;sv('mx',v);$('mxC').value=v;sT();say(`Max hours set to ${v}`);flash(`Max hours: ${v}`);press('mxBtns',v)}
+function setToa(v){v=parseFloat(v);if(isNaN(v)||v<0||v>500){flash('Enter 0–500 hours');say('Enter between 0 and 500 hours.');return}toa=v;sv('toa',v);$('toaC').value=v||'';sT();say(v?`Time off allowance set to ${v} hours`:'Time off tracking disabled');flash(v?`Time off: ${v} hours`:'Time off tracking off');press('toaBtns',v)}
+function setSla(v){v=parseFloat(v);if(isNaN(v)||v<0||v>500){flash('Enter 0–500 hours');say('Enter between 0 and 500 hours.');return}sla=v;sv('sla',v);$('slaC').value=v||'';sT();say(v?`Sick leave allowance set to ${v} hours`:'Sick leave tracking disabled');flash(v?`Sick leave: ${v} hours`:'Sick leave tracking off');press('slaBtns',v)}
 document.getElementById('mxC').addEventListener('change',function(){setMx(this.value)});
 document.getElementById('toaC').addEventListener('change',function(){setToa(this.value)});
 document.getElementById('slaC').addEventListener('change',function(){setSla(this.value)});
