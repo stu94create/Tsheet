@@ -256,7 +256,7 @@ summary::after{transition:transform .2s ease}
 <button class="icon-btn" onclick="nextWeek()" aria-label="Next week"><svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-chev-r"/></svg></button>
 </div>
 
-<div class="hero-card" id="heroCard" role="img" aria-label="">
+<div class="hero-card" id="heroCard" role="text" aria-label="">
 <div class="ring-wrap" aria-hidden="true">
 <svg class="ring" viewBox="0 0 120 120">
 <defs>
@@ -268,7 +268,7 @@ summary::after{transition:transform .2s ease}
 </svg>
 <span class="ring-pct" id="ringPct"></span>
 </div>
-<div class="hero-txt" aria-hidden="true">
+<div class="hero-txt">
 <p class="eyebrow">This week</p>
 <p class="hero-num"><span id="bigClaimed">0</span><span class="hero-unit">h</span></p>
 <p class="hero-sub">claimed of <span id="bigMax">7</span>h max</p>
@@ -526,7 +526,7 @@ function rL(){
   $('ringPct').textContent=mx>0?Math.round(cl/mx*100)+'%':'';
   $('heroCard').classList.toggle('over',ow>0);
   $('eCnt').textContent=ents.length||'';
-  const stat=(c,ic,k,v,sp)=>`<div class="stat ${c}" role="img" aria-label="${sp}"><svg class="ic" aria-hidden="true" width="18" height="18"><use href="#${ic}"/></svg><p class="k" aria-hidden="true">${k}</p><p class="v" aria-hidden="true">${v}</p></div>`;
+  const stat=(c,ic,k,v,sp)=>`<div class="stat ${c}" role="text" aria-label="${sp}"><svg class="ic" aria-hidden="true" width="18" height="18"><use href="#${ic}"/></svg><p class="k">${k}</p><p class="v">${v}</p></div>`;
   let tiles=stat('c-p','i-clock','Logged',tot+'h',`Logged, ${hrw(tot)}`)+stat('c-g','i-check','Claimed',cl+' / '+mx+'h',`Claimed, ${cl} of ${hrw(mx)}`)+stat('c-v','i-rewind','Owing',netOw+'h',`Owing, ${hrw(netOw)}`);
   tiles+=toa>0?stat('c-o','i-sun','Time off',Math.max(0,toa-cumOff)+'h left',`Time off, ${hrw(Math.max(0,toa-cumOff))} left`):stat('c-o','i-sun','Time off',cumOff+'h used',`Time off, ${hrw(cumOff)} used`);
   if(sla>0||cumSick>0)tiles+=sla>0?stat('c-d','i-pulse','Sick leave',cumSick+' / '+sla+'h',`Sick leave, ${cumSick} of ${hrw(sla)} used`):stat('c-d','i-pulse','Sick leave',cumSick+'h',`Sick leave, ${hrw(cumSick)}`);
@@ -534,7 +534,7 @@ function rL(){
   $('expBtn').hidden=!ents.length;$('clrBtn').hidden=!ents.length;
   const so=[...ents].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
   if(!so.length){$('eList').innerHTML='<div class="empty"><svg class="ic" aria-hidden="true" width="28" height="28"><use href="#i-clock"/></svg><p class="empty-t">No entries yet.</p><p class="empty-s">Add your first entry for this week.</p></div>';return}
-  $('eList').innerHTML=so.map(e=>{const ri=ents.indexOf(e);const hw=e.time===1?'hour':'hours';return`<article class="ec"><div class="ec-body" role="img" aria-label="${h(e.day)} ${dateFor(e.day)}. ${h(e.task)}${e.participant?' ('+h(e.participant)+')':''}. ${e.time} ${hw}.${e.details&&e.details!==e.task?' '+h(e.details)+'.':''}${e.admin?' '+h(e.admin)+'.':''}"><div class="ec-top" aria-hidden="true"><p class="day">${h(e.day)} <span class="date">${dateFor(e.day)}</span></p><p class="hrs">${e.time}h</p></div><p class="task" aria-hidden="true">${h(e.task)}${e.participant?' ('+h(e.participant)+')':''}</p><p class="m" aria-hidden="true">${h(e.details)}${e.admin?' · '+h(e.admin):''}</p></div><div class="ec-actions"><button class="ib" onclick="edE(${ri})" aria-label="Edit ${h(e.day)} ${h(e.task)}, ${e.time} ${hw}"><svg class="ic" aria-hidden="true" width="17" height="17"><use href="#i-edit"/></svg></button><button class="ib d" onclick="dlE(${ri})" aria-label="Delete ${h(e.day)} ${h(e.task)}, ${e.time} ${hw}"><svg class="ic" aria-hidden="true" width="17" height="17"><use href="#i-trash"/></svg></button></div></article>`}).join('');
+  $('eList').innerHTML=so.map(e=>{const ri=ents.indexOf(e);const hw=e.time===1?'hour':'hours';return`<article class="ec"><div class="ec-body" role="text" aria-label="${h(e.day)} ${dateFor(e.day)}. ${h(e.task)}${e.participant?' ('+h(e.participant)+')':''}. ${e.time} ${hw}.${e.details&&e.details!==e.task?' '+h(e.details)+'.':''}${e.admin?' '+h(e.admin)+'.':''}"><div class="ec-top"><p class="day">${h(e.day)} <span class="date">${dateFor(e.day)}</span></p><p class="hrs">${e.time}h</p></div><p class="task">${h(e.task)}${e.participant?' ('+h(e.participant)+')':''}</p><p class="m">${h(e.details)}${e.admin?' · '+h(e.admin):''}</p></div><div class="ec-actions"><button class="ib" onclick="edE(${ri})" aria-label="Edit ${h(e.day)} ${h(e.task)}, ${e.time} ${hw}"><svg class="ic" aria-hidden="true" width="17" height="17"><use href="#i-edit"/></svg></button><button class="ib d" onclick="dlE(${ri})" aria-label="Delete ${h(e.day)} ${h(e.task)}, ${e.time} ${hw}"><svg class="ic" aria-hidden="true" width="17" height="17"><use href="#i-trash"/></svg></button></div></article>`}).join('');
 
 }
 
