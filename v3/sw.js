@@ -5,7 +5,7 @@
 // their own, so if the root app is ever updated while v3 is being tested,
 // this cache may be evicted once — harmless, as the network-first fetch
 // handler below re-populates it on the next load.
-const V = 'ts3-v3';
+const V = 'ts3-v4';
 const FILES = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
