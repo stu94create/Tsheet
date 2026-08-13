@@ -42,7 +42,7 @@ p{font-size:.95rem;line-height:1.7;color:var(--text-2);margin:0 0 .75rem}
 .footnote{font-size:var(--fs-sm);color:var(--muted);line-height:1.6}
 .eyebrow{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--primary);font-weight:700;margin:0 0 .3rem}
 [hidden]{display:none!important}
-.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;white-space:nowrap}
 .sep{border:none;border-top:1px solid var(--border);margin:1.4rem 0}
 /* ---- Header ---- */
 header{position:sticky;top:0;z-index:50;background:rgba(10,14,26,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:calc(.8rem + env(safe-area-inset-top)) 1.25rem .8rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
@@ -256,7 +256,7 @@ summary::after{transition:transform .2s ease}
 <button class="icon-btn" onclick="nextWeek()" aria-label="Next week"><svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-chev-r"/></svg></button>
 </div>
 
-<div class="hero-card" id="heroCard" aria-hidden="true">
+<div class="hero-card" id="heroCard" role="img" aria-label="">
 <div class="ring-wrap" aria-hidden="true">
 <svg class="ring" viewBox="0 0 120 120">
 <defs>
@@ -268,14 +268,13 @@ summary::after{transition:transform .2s ease}
 </svg>
 <span class="ring-pct" id="ringPct"></span>
 </div>
-<div class="hero-txt">
+<div class="hero-txt" aria-hidden="true">
 <p class="eyebrow">This week</p>
 <p class="hero-num"><span id="bigClaimed">0</span><span class="hero-unit">h</span></p>
 <p class="hero-sub">claimed of <span id="bigMax">7</span>h max</p>
 </div>
 </div>
 
-<p id="summ" class="sr"></p>
 <div class="stats" id="statGrid" aria-hidden="true"></div>
 <p id="cumm" class="footnote"></p>
 
@@ -500,7 +499,7 @@ function rL(){
   const tot=ents.reduce((a,e)=>a+e.time,0);
   const ou=ents.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
   const w=tot-ou,cl=Math.min(w,mx),ow=w>mx?w-mx:0;
-  $('summ').textContent=`This week. ${tot} hours logged. ${cl} of ${mx} hours claimed. ${ow>0?ow+' hours owing.':'No hours owing.'} ${ents.length} ${ents.length===1?'entry':'entries'}.`;
+  $('heroCard').setAttribute('aria-label',`This week. ${tot} hours logged. ${cl} of ${mx} hours claimed. ${ow>0?ow+' hours owing.':'No hours owing.'} ${ents.length} ${ents.length===1?'entry':'entries'}.`);
   const weeks=allWeeks();
   let cumOw=0,cumRec=0,cumOff=0,cumSick=0;
   weeks.forEach(we=>{
@@ -534,7 +533,8 @@ function rL(){
   $('expBtn').hidden=!ents.length;$('clrBtn').hidden=!ents.length;
   const so=[...ents].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
   if(!so.length){$('eList').innerHTML='<div class="empty"><svg class="ic" aria-hidden="true" width="28" height="28"><use href="#i-clock"/></svg><p class="empty-t">No entries yet.</p><p class="empty-s">Add your first entry for this week.</p></div>';return}
-  $('eList').innerHTML=so.map(e=>{const ri=ents.indexOf(e);const hw=e.time===1?'hour':'hours';return`<article class="ec"><p class="sr">${h(e.day)} ${dateFor(e.day)}. ${h(e.task)}${e.participant?' ('+h(e.participant)+')':''}. ${e.time} ${hw}.${e.details&&e.details!==e.task?' '+h(e.details)+'.':''}${e.admin?' '+h(e.admin)+'.':''}</p><div class="ec-top" aria-hidden="true"><p class="day">${h(e.day)} <span class="date">${dateFor(e.day)}</span></p><p class="hrs">${e.time}h</p></div><p class="task" aria-hidden="true">${h(e.task)}${e.participant?' ('+h(e.participant)+')':''}</p><p class="m" aria-hidden="true">${h(e.details)}${e.admin?' · '+h(e.admin):''}</p><div class="ec-actions"><button class="ib" onclick="edE(${ri})" aria-label="Edit ${h(e.day)} ${h(e.task)}, ${e.time} ${hw}"><svg class="ic" aria-hidden="true" width="17" height="17"><use href="#i-edit"/></svg></button><button class="ib d" onclick="dlE(${ri})" aria-label="Delete ${h(e.day)} ${h(e.task)}, ${e.time} ${hw}"><svg class="ic" aria-hidden="true" width="17" height="17"><use href="#i-trash"/></svg></button></div></article>`}).join('');
+  $('eList').innerHTML=so.map(e=>{const ri=ents.indexOf(e);const hw=e.time===1?'hour':'hours';return`<article class="ec"><div class="ec-body" role="img" aria-label="${h(e.day)} ${dateFor(e.day)}. ${h(e.task)}${e.participant?' ('+h(e.participant)+')':''}. ${e.time} ${hw}.${e.details&&e.details!==e.task?' '+h(e.details)+'.':''}${e.admin?' '+h(e.admin)+'.':''}"><div class="ec-top" aria-hidden="true"><p class="day">${h(e.day)} <span class="date">${dateFor(e.day)}</span></p><p class="hrs">${e.time}h</p></div><p class="task" aria-hidden="true">${h(e.task)}${e.participant?' ('+h(e.participant)+')':''}</p><p class="m" aria-hidden="true">${h(e.details)}${e.admin?' · '+h(e.admin):''}</p></div><div class="ec-actions"><button class="ib" onclick="edE(${ri})" aria-label="Edit ${h(e.day)} ${h(e.task)}, ${e.time} ${hw}"><svg class="ic" aria-hidden="true" width="17" height="17"><use href="#i-edit"/></svg></button><button class="ib d" onclick="dlE(${ri})" aria-label="Delete ${h(e.day)} ${h(e.task)}, ${e.time} ${hw}"><svg class="ic" aria-hidden="true" width="17" height="17"><use href="#i-trash"/></svg></button></div></article>`}).join('');
+
 }
 
 function prevWeek(){ws.setDate(ws.getDate()-7);ws=new Date(ws);sW();go('list');say('Moved to '+fR(ws))}
