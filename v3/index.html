@@ -275,7 +275,7 @@ summary::after{transition:transform .2s ease}
 </div>
 </div>
 
-<div class="stats" id="statGrid" aria-hidden="true"></div>
+<div class="stats" id="statGrid"></div>
 <p id="cumm" class="footnote"></p>
 
 <button class="bb bp hero-add" id="addBtn" onclick="startAdd()"><svg class="ic" aria-hidden="true" width="22" height="22"><use href="#i-plus"/></svg>Add Entry</button>
@@ -499,7 +499,8 @@ function rL(){
   const tot=ents.reduce((a,e)=>a+e.time,0);
   const ou=ents.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
   const w=tot-ou,cl=Math.min(w,mx),ow=w>mx?w-mx:0;
-  $('heroCard').setAttribute('aria-label',`This week. ${tot} hours logged. ${cl} of ${mx} hours claimed. ${ow>0?ow+' hours owing.':'No hours owing.'} ${ents.length} ${ents.length===1?'entry':'entries'}.`);
+  const hrw=n=>n+' '+(n===1?'hour':'hours');
+  $('heroCard').setAttribute('aria-label',`This week. ${cl} of ${hrw(mx)} claimed. ${mx>0?Math.round(cl/mx*100):0} percent of your maximum.${ow>0?' '+hrw(ow)+' over your maximum this week.':''}`);
   const weeks=allWeeks();
   let cumOw=0,cumRec=0,cumOff=0,cumSick=0;
   weeks.forEach(we=>{
@@ -525,10 +526,10 @@ function rL(){
   $('ringPct').textContent=mx>0?Math.round(cl/mx*100)+'%':'';
   $('heroCard').classList.toggle('over',ow>0);
   $('eCnt').textContent=ents.length||'';
-  const stat=(c,ic,k,v)=>`<div class="stat ${c}"><svg class="ic" aria-hidden="true" width="18" height="18"><use href="#${ic}"/></svg><p class="k">${k}</p><p class="v">${v}</p></div>`;
-  let tiles=stat('c-p','i-clock','Logged',tot+'h')+stat('c-g','i-check','Claimed',cl+' / '+mx+'h')+stat('c-v','i-rewind','Owing',netOw+'h');
-  tiles+=stat('c-o','i-sun','Time off',toa>0?Math.max(0,toa-cumOff)+'h left':cumOff+'h used');
-  if(sla>0||cumSick>0)tiles+=stat('c-d','i-pulse','Sick leave',sla>0?cumSick+' / '+sla+'h':cumSick+'h');
+  const stat=(c,ic,k,v,sp)=>`<div class="stat ${c}" role="img" aria-label="${sp}"><svg class="ic" aria-hidden="true" width="18" height="18"><use href="#${ic}"/></svg><p class="k" aria-hidden="true">${k}</p><p class="v" aria-hidden="true">${v}</p></div>`;
+  let tiles=stat('c-p','i-clock','Logged',tot+'h',`Logged, ${hrw(tot)}`)+stat('c-g','i-check','Claimed',cl+' / '+mx+'h',`Claimed, ${cl} of ${hrw(mx)}`)+stat('c-v','i-rewind','Owing',netOw+'h',`Owing, ${hrw(netOw)}`);
+  tiles+=toa>0?stat('c-o','i-sun','Time off',Math.max(0,toa-cumOff)+'h left',`Time off, ${hrw(Math.max(0,toa-cumOff))} left`):stat('c-o','i-sun','Time off',cumOff+'h used',`Time off, ${hrw(cumOff)} used`);
+  if(sla>0||cumSick>0)tiles+=sla>0?stat('c-d','i-pulse','Sick leave',cumSick+' / '+sla+'h',`Sick leave, ${cumSick} of ${hrw(sla)} used`):stat('c-d','i-pulse','Sick leave',cumSick+'h',`Sick leave, ${hrw(cumSick)}`);
   $('statGrid').innerHTML=tiles;
   $('expBtn').hidden=!ents.length;$('clrBtn').hidden=!ents.length;
   const so=[...ents].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
