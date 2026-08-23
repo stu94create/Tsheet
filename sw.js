@@ -4,7 +4,7 @@
 // caches with the same prefix. The old shared name ('ts-v23') is still used
 // by the v2/ copy of the app, and v3/ uses 'ts3-*' — this worker must never
 // evict theirs.
-const V = 'tsr-v1';
+const V = 'tsr-v2';
 const FILES = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {

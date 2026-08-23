@@ -154,6 +154,14 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.9}
 .empty .ic{opacity:.85;margin-bottom:.2rem}
 .empty-t{color:var(--text-2);font-weight:700;margin:0}
 .empty-s{font-size:var(--fs-sm);color:var(--muted);margin:0}
+.note{font-size:var(--fs-sm);color:var(--muted);margin:.5rem 0 0}
+.mxh{border:1.5px solid var(--border);border-radius:var(--r-md);background:var(--surface-2);padding:.75rem .8rem;margin-bottom:.5rem}
+.mxh-t{margin:0 0 .55rem;font-size:var(--fs-sm);font-weight:700;color:var(--text-2)}
+.mxh-r{display:flex;align-items:center;gap:.6rem}
+.mxh-r input{margin-bottom:0;flex:1;background:var(--surface)}
+.mxh-r .ib{position:relative;flex:none;width:46px;height:46px;display:inline-flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text-2);cursor:pointer;font-family:inherit;padding:0}
+.mxh-r .ib.d{color:var(--danger)}
+.mxh-r .ib:hover{border-color:var(--border-strong)}
 /* ---- Step indicator ---- */
 .steps{display:flex;align-items:flex-start;gap:.5rem;margin:1.2rem 0 .2rem}
 .stepc{display:flex;flex-direction:column;align-items:center;gap:.3rem;flex:0 0 auto}
@@ -307,9 +315,20 @@ summary::after{transition:transform .2s ease}
 <div class="card">
 <h3>Maximum hours per week</h3>
 <p style="margin-top:0">This caps your claimed hours. Anything above shows as time owing.</p>
+<p id="mxScope" class="note"></p>
 <div id="mxBtns" class="chips chips-3"></div>
 <label class="flabel" for="mxC">Or type a custom max</label>
 <input id="mxC" type="number" min="1" max="40" step="0.5">
+</div>
+<div class="card">
+<h3>Hours history</h3>
+<p style="margin-top:0">Every period keeps its own maximum, so weeks you already logged stay as they were. Change a period's hours below, or delete a change to fold those weeks back into the period before it.</p>
+<div id="mxhList"></div>
+<label class="flabel" for="mxhD">Add a change starting from</label>
+<input id="mxhD" type="date">
+<label class="flabel" for="mxhH">New maximum hours</label>
+<input id="mxhH" type="number" min="1" max="80" step="0.5" placeholder="e.g. 3">
+<button class="bb bs pt" onclick="addMxh()"><svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-plus"/></svg>Add Change</button>
 </div>
 <div class="card">
 <h3>Time off allowance</h3>
@@ -367,13 +386,14 @@ summary::after{transition:transform .2s ease}
 <p>To log time off or sick leave, choose "Time Off" or "Sick Leave" as the task type when adding an entry. In Settings you can set an allowance for each (in hours). The app tracks how much you've used across all weeks and shows how much remains on the main screen. If you don't set an allowance, you'll still see a running total of hours taken.</p>
 </div></details>
 <details class="card"><summary><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="15" height="15"><use href="#i-rewind"/></svg></span><h3>Hours owing</h3></summary><div class="dc">
-<p>If you work more than your weekly max, the extra hours are "owing." The app tracks this across all your saved weeks and shows the cumulative total on the main screen. To use your owed hours, add an entry with "Hours Reclaimed" as the task type. The app subtracts reclaimed hours from your total and shows both the earned and used amounts.</p>
+<p>If you work more than your weekly max, the extra hours are "owing." Each week is measured against the max that applied to that week, so changing your max later never rewrites weeks you've already logged. The app tracks this across all your saved weeks and shows the cumulative total on the main screen. To use your owed hours, add an entry with "Hours Reclaimed" as the task type. The app subtracts reclaimed hours from your total and shows both the earned and used amounts.</p>
 </div></details>
 <details class="card"><summary><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="15" height="15"><use href="#i-upload"/></svg></span><h3>Backup and restore</h3></summary><div class="dc">
 <p>In Settings, tap "Download Backup" to save all your entries, custom tasks and settings to a file. You can save it to iCloud Drive, email it to yourself, or keep it on your phone. To restore from a backup (e.g. on a new phone), tap "Choose Backup File" and pick the file. This replaces your current data.</p>
 </div></details>
 <details class="card"><summary><span class="ic-chip sm" aria-hidden="true"><svg class="ic" width="15" height="15"><use href="#i-gear"/></svg></span><h3>Settings</h3></summary><div class="dc">
 <p>In Settings you can change your maximum weekly hours (default 7), set your time off and sick leave allowances, and back up or restore your data.</p>
+<p>Changing your maximum applies from the week you're viewing onwards — earlier weeks keep the maximum they were logged under. The "Hours history" card lists every period and the date it started, so you can add a change for any date, correct a period's hours, or delete a change you didn't mean to make.</p>
 </div></details>
 <button class="bb bs" onclick="go('list');fc('addBtn')"><svg class="ic" aria-hidden="true" width="20" height="20"><use href="#i-chev-l"/></svg>Back to Timesheet</button>
 </section>
@@ -456,18 +476,39 @@ function sW(){tone(400,.15,'sine',.06);tone(500,.15,'sine',.06)}
 // State
 const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const DT=['Admin','Research','Training','Time Off','Sick Leave','Hours Reclaimed'];
-let ws=gM(new Date()),ents=[],sD='',sK='',eI=null,ct=[],mx=7,toa=0,sla=0,undoTimer=null;
+let ws=gM(new Date()),ents=[],sD='',sK='',eI=null,ct=[],mx=7,mxh=[],toa=0,sla=0,undoTimer=null;
 
 function gM(d){const x=new Date(d);const y=x.getDay();x.setDate(x.getDate()-y+(y===0?-6:1));x.setHours(0,0,0,0);return x}
 function pad(n){return String(n).padStart(2,'0')}
-function wk(){return `${ws.getFullYear()}-${pad(ws.getMonth()+1)}-${pad(ws.getDate())}`}
+function kOf(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+function wk(){return kOf(ws)}
+function dLbl(k){const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})}
+function dayBefore(k){const [y,m,d]=k.split('-').map(Number);const x=new Date(y,m-1,d);x.setDate(x.getDate()-1);return kOf(x)}
 function dateFor(day){const i=DAYS.indexOf(day);if(i<0)return'';const d=new Date(ws);d.setDate(d.getDate()+i);return d.toLocaleDateString('en-IE',{day:'numeric',month:'short'})}
 function fR(d){const e=new Date(d);e.setDate(e.getDate()+6);return`Week of ${d.toLocaleDateString('en-IE',{day:'numeric',month:'short'})} — ${e.toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})}`}
 function fS(d){const day=d.getDate(),m=d.toLocaleDateString('en-IE',{month:'long'}),y=d.getFullYear(),s=[1,21,31].includes(day)?'st':[2,22].includes(day)?'nd':[3,23].includes(day)?'rd':'th';return`${day}${s} ${m} ${y}`}
 
 function ld(k){try{const r=localStorage.getItem('ts_'+k);return r?JSON.parse(r):null}catch{return null}}
 function sv(k,v){try{localStorage.setItem('ts_'+k,JSON.stringify(v))}catch{}}
-function ls(){ents=ld(wk())||[];ct=ld('ct')||[];const m=ld('mx');if(m!==null)mx=m;const t=ld('toa');if(t!==null)toa=t;const s=ld('sla');if(s!==null)sla=s}
+// The weekly max is effective-dated: mxh is an ascending list of periods, each
+// saying "from this week onwards the max is N". Every week is measured against
+// the period covering it, so changing the max never rewrites past weeks. The
+// first period is the baseline and covers everything before the first change.
+const BASE_FROM='0000-01-01';
+function mxAt(k){let m=mxh.length?mxh[0].max:7;for(const p of mxh){if(p.from<=k)m=p.max;else break}return m}
+function sortMxh(l){return l.sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:0)}
+function dedupe(l){return l.filter((p,i)=>i===0||p.max!==l[i-1].max)}
+function ldMxh(){
+  const raw=ld('mxh');
+  let l=Array.isArray(raw)?raw.filter(p=>p&&typeof p.from==='string'&&typeof p.max==='number'&&p.max>0):null;
+  if(!l||!l.length){const m=ld('mx');l=[{from:BASE_FROM,max:(typeof m==='number'&&m>0)?m:7}]}
+  sortMxh(l);l[0]={from:BASE_FROM,max:l[0].max};
+  mxh=dedupe(l);return mxh;
+}
+function svMxh(){mxh=dedupe(sortMxh(mxh));sv('mxh',mxh);sv('mx',mxh[mxh.length-1].max)}
+function setMxFrom(k,v){const i=mxh.findIndex(p=>p.from===k);if(i>=0)mxh[i].max=v;else mxh.push({from:k,max:v});svMxh()}
+
+function ls(){ents=ld(wk())||[];ct=ld('ct')||[];ldMxh();mx=mxAt(wk());const t=ld('toa');if(t!==null)toa=t;const s=ld('sla');if(s!==null)sla=s}
 function se(){sv(wk(),ents)}
 
 function $(id){return document.getElementById(id)}
@@ -483,13 +524,13 @@ function go(n){
   window.scrollTo(0,0);
 }
 
+const WK_KEY=/^ts_\d{4}-\d{2}-\d{2}$/;
 function allWeeks(){
   const weeks=[];
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);
-    if(k.startsWith('ts_')&&k!=='ts_ct'&&k!=='ts_mx'&&k!=='ts_toa'&&k!=='ts_sla'){
-      try{const e=JSON.parse(localStorage.getItem(k));if(Array.isArray(e))weeks.push(e)}catch(e){}
-    }
+    if(!WK_KEY.test(k))continue;
+    try{const e=JSON.parse(localStorage.getItem(k));if(Array.isArray(e))weeks.push({key:k.slice(3),entries:e})}catch(e){}
   }
   return weeks;
 }
@@ -497,19 +538,18 @@ function allWeeks(){
 function rL(){
   ls();$('wkLbl').textContent=fR(ws);
   const tot=ents.reduce((a,e)=>a+e.time,0);
-  const ou=ents.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
-  const w=tot-ou,cl=Math.min(w,mx),ow=w>mx?w-mx:0;
+  const cl=Math.min(tot,mx),ow=tot>mx?tot-mx:0;
   const hrw=n=>n+' '+(n===1?'hour':'hours');
   $('heroCard').setAttribute('aria-label',`This week. ${cl} of ${hrw(mx)} claimed. ${mx>0?Math.round(cl/mx*100):0} percent of your maximum.${ow>0?' '+hrw(ow)+' over your maximum this week.':''}`);
   const weeks=allWeeks();
   let cumOw=0,cumRec=0,cumOff=0,cumSick=0;
   weeks.forEach(we=>{
-    const wOu=we.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
-    const wTot=we.reduce((a,e)=>a+e.time,0)-wOu;
-    if(wTot>mx)cumOw+=wTot-mx;
-    cumRec+=we.filter(e=>e.task==='Hours Reclaimed').reduce((a,e)=>a+e.time,0);
-    cumOff+=we.filter(e=>e.task==='Time Off').reduce((a,e)=>a+e.time,0);
-    cumSick+=we.filter(e=>e.task==='Sick Leave').reduce((a,e)=>a+e.time,0);
+    const wMx=mxAt(we.key);
+    const wTot=we.entries.reduce((a,e)=>a+e.time,0);
+    if(wTot>wMx)cumOw+=wTot-wMx;
+    cumRec+=we.entries.filter(e=>e.task==='Hours Reclaimed').reduce((a,e)=>a+e.time,0);
+    cumOff+=we.entries.filter(e=>e.task==='Time Off').reduce((a,e)=>a+e.time,0);
+    cumSick+=we.entries.filter(e=>e.task==='Sick Leave').reduce((a,e)=>a+e.time,0);
   });
   const netOw=Math.max(0,cumOw-cumRec);
   let cumText='';
@@ -615,10 +655,10 @@ function zipIt(files){
 
 function buildXlsx(){
   const so=[...ents].sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day));
-  const ou=ents.filter(e=>e.task==='Time Owed').reduce((a,e)=>a+e.time,0);
-  const w=ents.reduce((a,e)=>a+e.time,0)-ou;
-  const claimed=Math.max(0,Math.min(w,mx));
-  const owing=w>mx?w-mx:0;
+  const wMx=mxAt(wk());
+  const w=ents.reduce((a,e)=>a+e.time,0);
+  const claimed=Math.max(0,Math.min(w,wMx));
+  const owing=w>wMx?w-wMx:0;
   const xe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
   const sC=(r,s,v)=>`<c r="${r}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`;
   const nC=(r,s,v)=>`<c r="${r}" s="${s}" t="n"><v>${v}</v></c>`;
@@ -695,13 +735,51 @@ function doExport(){
   fallback();
 }
 
-function rS(){
+function rS(focusI){
+  $('mxScope').textContent=`Applies from the week of ${dLbl(wk())} onwards. Earlier weeks keep the maximum they were logged under.`;
   $('mxC').value=mx;$('mxBtns').innerHTML=[5,6,7,7.5,8,10].map(h=>`<button class="lb" aria-pressed="${mx===h}" aria-label="${h} hours per week" onclick="setMx(${h})">${h}h</button>`).join('');
+  rMxh(focusI);
   $('toaC').value=toa||'';$('toaBtns').innerHTML=[0,35,70,100,140,200].map(v=>`<button class="lb" aria-pressed="${toa===v}" aria-label="${v?v+' hours time off':'No time off tracking'}" onclick="setToa(${v})">${v?v+'h':'Off'}</button>`).join('');
   $('slaC').value=sla||'';$('slaBtns').innerHTML=[0,21,35,56,70].map(v=>`<button class="lb" aria-pressed="${sla===v}" aria-label="${v?v+' hours sick leave':'No sick leave tracking'}" onclick="setSla(${v})">${v?v+'h':'Off'}</button>`).join('');
 }
 function press(cid,v){$(cid).querySelectorAll('[aria-pressed]').forEach(b=>{const bv=b.textContent==='Off'?0:parseFloat(b.textContent);b.setAttribute('aria-pressed',String(bv===v))})}
-function setMx(v){v=parseFloat(v);if(isNaN(v)||v<=0||v>80){flash('Enter 1–80 hours');say('Enter between 1 and 80 hours.');return}mx=v;sv('mx',v);$('mxC').value=v;sT();say(`Max hours set to ${v}`);flash(`Max hours: ${v}`);press('mxBtns',v)}
+function rMxh(focusI){
+  $('mxhList').innerHTML=mxh.map((p,i)=>{
+    const nx=mxh[i+1];
+    const span=i===0?(nx?`All weeks up to ${dLbl(dayBefore(nx.from))}`:'All weeks'):(nx?`From ${dLbl(p.from)} to ${dLbl(dayBefore(nx.from))}`:`From ${dLbl(p.from)} onwards`);
+    const del=i===0?'':`<button class="ib d" onclick="delMxh(${i})" aria-label="Delete the change starting ${dLbl(p.from)}"><svg class="ic" aria-hidden="true" width="17" height="17"><use href="#i-trash"/></svg></button>`;
+    return `<div class="mxh"><p class="mxh-t">${span}</p><div class="mxh-r"><input id="mxh_${i}" type="number" min="1" max="80" step="0.5" value="${p.max}" aria-label="Maximum hours per week. ${span}" onchange="editMxh(${i},this.value)">${del}</div></div>`;
+  }).join('');
+  if(focusI!=null){const el=$('mxh_'+Math.min(focusI,mxh.length-1));if(el)el.focus()}
+}
+// Index of the row covering a date — the row itself, or the one it collapsed into.
+function coverIdx(k){let n=0;mxh.forEach((p,i)=>{if(p.from<=k)n=i});return n}
+function editMxh(i,v){
+  const p=mxh[i];if(!p)return;
+  v=parseFloat(v);
+  if(isNaN(v)||v<=0||v>80){flash('Enter 1–80 hours');say('Enter between 1 and 80 hours.');rMxh(i);return}
+  const from=p.from;p.max=v;svMxh();ls();sT();rS(coverIdx(from));
+  flash(`Updated to ${v}h`);
+  say(from===BASE_FROM?`Weeks before your first change set to ${v} hours.`:`Weeks from ${dLbl(from)} set to ${v} hours.`);
+}
+function delMxh(i){
+  const p=mxh[i];if(!p||i===0)return;
+  if(!confirm(`Delete the change starting ${dLbl(p.from)}? Those weeks go back to the maximum before it.`))return;
+  mxh.splice(i,1);svMxh();ls();sDl();rS(i-1);
+  flash('Change deleted');say(`Change starting ${dLbl(p.from)} deleted. Those weeks now use ${mxAt(p.from)} hours.`);
+}
+function addMxh(){
+  const d=$('mxhD').value,v=parseFloat($('mxhH').value);
+  const dt=d?new Date(d+'T00:00:00'):null;
+  if(!dt||isNaN(dt.getTime())){flash('Pick a date for the change');say('Pick the date the change starts from.');fc('mxhD');return}
+  if(isNaN(v)||v<=0||v>80){flash('Enter 1–80 hours');say('Enter between 1 and 80 hours.');fc('mxhH');return}
+  const k=kOf(gM(dt));
+  setMxFrom(k,v);ls();sT();
+  $('mxhD').value='';$('mxhH').value='';
+  rS(coverIdx(k));
+  flash(`${v}h from ${dLbl(k)}`);say(`Maximum set to ${v} hours from the week of ${dLbl(k)} onwards.`);
+}
+function setMx(v){v=parseFloat(v);if(isNaN(v)||v<=0||v>80){flash('Enter 1–80 hours');say('Enter between 1 and 80 hours.');return}setMxFrom(wk(),v);ls();$('mxC').value=v;sT();say(`Max hours set to ${v} from the week of ${dLbl(wk())} onwards`);flash(`Max hours: ${v}`);press('mxBtns',v);rMxh()}
 function setToa(v){v=parseFloat(v);if(isNaN(v)||v<0||v>500){flash('Enter 0–500 hours');say('Enter between 0 and 500 hours.');return}toa=v;sv('toa',v);$('toaC').value=v||'';sT();say(v?`Time off allowance set to ${v} hours`:'Time off tracking disabled');flash(v?`Time off: ${v} hours`:'Time off tracking off');press('toaBtns',v)}
 function setSla(v){v=parseFloat(v);if(isNaN(v)||v<0||v>500){flash('Enter 0–500 hours');say('Enter between 0 and 500 hours.');return}sla=v;sv('sla',v);$('slaC').value=v||'';sT();say(v?`Sick leave allowance set to ${v} hours`:'Sick leave tracking disabled');flash(v?`Sick leave: ${v} hours`:'Sick leave tracking off');press('slaBtns',v)}
 document.getElementById('mxC').addEventListener('change',function(){setMx(this.value)});
